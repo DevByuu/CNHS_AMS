@@ -132,32 +132,34 @@
 
         <!-- Today's Summary -->
         <div class="col-lg-4">
-            <div class="summary-card">
-                <h5 class="summary-title">
-                    <i class="bi bi-bar-chart-fill me-2"></i>
-                    Attendance Rate
-                </h5>
-                <div class="attendance-rate">
-                    <div class="rate-circle">
-                        <svg class="progress-ring" width="150" height="150">
-                            <circle class="progress-ring-circle-bg" cx="75" cy="75" r="65"></circle>
-                            <circle class="progress-ring-circle" cx="75" cy="75" r="65" id="progressCircle"></circle>
-                        </svg>
-                        <div class="rate-percentage" id="attendancePercentage">0%</div>
-                    </div>
-                </div>
-                <div class="summary-details mt-4">
-                    <div class="summary-item">
-                        <span class="summary-dot bg-success"></span>
-                        <span>Present: <strong id="summaryPresent">0</strong></span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="summary-dot bg-danger"></span>
-                        <span>Absent: <strong id="summaryAbsent">0</strong></span>
-                    </div>
+    <div class="summary-card">
+        <h5 class="summary-title">
+            <i class="bi bi-bar-chart-fill me-2"></i>
+            Attendance Rate
+        </h5>
+        <div class="attendance-rate">
+            <div class="rate-circle">
+                <svg class="progress-ring" width="150" height="150">
+                    <circle class="progress-ring-circle-bg" cx="75" cy="75" r="65"></circle>
+                    <circle class="progress-ring-circle" cx="75" cy="75" r="65" id="progressCircle"></circle>
+                </svg>
+                <div class="rate-percentage" id="attendancePercentage">
+                    {{ $totalStudents > 0 ? round(($presentToday / $totalStudents) * 100) : 0 }}%
                 </div>
             </div>
         </div>
+        <div class="summary-details mt-4">
+            <div class="summary-item">
+                <span class="summary-dot bg-success"></span>
+                <span>Present: <strong id="summaryPresent">{{ $presentToday }}</strong></span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-dot bg-danger"></span>
+                <span>Absent: <strong id="summaryAbsent">{{ $absentToday }}</strong></span>
+            </div>
+        </div>
+    </div>
+</div>
     </div>
 </div>
 
@@ -827,6 +829,124 @@
         // Insert at the beginning
         activityList.insertBefore(item, activityList.firstChild);
     }
+
+    // Initialize progress circle on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const totalStudents = {{ $totalStudents }};
+    const presentToday = {{ $presentToday }};
+    const absentToday = {{ $absentToday }};
+    
+    // Initial update
+    updateStats({
+        total: totalStudents,
+        present: presentToday,
+        absent: absentToday
+    });
+});
+
+// Update stats with animation
+function updateStats(stats) {
+    // Animate present count
+    animateValue('presentCount', parseInt(document.getElementById('presentCount').textContent), stats.present, 500);
+    
+    // Animate absent count
+    animateValue('absentCount', parseInt(document.getElementById('absentCount').textContent), stats.absent, 500);
+    
+    // Update summary
+    animateValue('summaryPresent', parseInt(document.getElementById('summaryPresent').textContent || 0), stats.present, 500);
+    animateValue('summaryAbsent', parseInt(document.getElementById('summaryAbsent').textContent || 0), stats.absent, 500);
+
+    // Calculate and update attendance percentage with animation
+    const total = stats.total;
+    const present = stats.present;
+    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+    
+    const currentPercentage = parseInt(document.getElementById('attendancePercentage').textContent);
+    animatePercentage(currentPercentage, percentage);
+    
+    // Update progress circle with smooth animation
+    updateProgressCircle(percentage);
+}
+
+// Animate number changes
+function animateValue(elementId, start, end, duration) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    const range = end - start;
+    const increment = range / (duration / 16); // 60fps
+    let current = start;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+        element.textContent = Math.round(current);
+    }, 16);
+}
+
+// Animate percentage with smooth transition
+function animatePercentage(start, end) {
+    const element = document.getElementById('attendancePercentage');
+    if (!element) return;
+    
+    const duration = 1000;
+    const range = end - start;
+    const increment = range / (duration / 16);
+    let current = start;
+    
+    const timer = setInterval(() => {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+        element.textContent = Math.round(current) + '%';
+    }, 16);
+}
+
+// Update progress circle with animation
+function updateProgressCircle(percentage) {
+    const circle = document.getElementById('progressCircle');
+    if (!circle) return;
+    
+    const radius = 65;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percentage / 100) * circumference;
+    
+    // Set initial values if not set
+    if (!circle.style.strokeDasharray) {
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = circumference;
+    }
+    
+    // Animate to new value
+    circle.style.transition = 'stroke-dashoffset 1s ease-in-out';
+    circle.style.strokeDashoffset = offset;
+    
+    // Change color based on percentage
+    if (percentage >= 80) {
+        circle.style.stroke = '#10b981'; // Green
+    } else if (percentage >= 50) {
+        circle.style.stroke = '#f59e0b'; // Orange
+    } else {
+        circle.style.stroke = '#ef4444'; // Red
+    }
+}
+
+// Optional: Auto-refresh stats every 30 seconds
+setInterval(function() {
+    fetch('/api/attendance/stats')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateStats(data.stats);
+            }
+        })
+        .catch(error => console.error('Error fetching stats:', error));
+}, 30000); // Refresh every 30 seconds
 
     // Update stats
     function updateStats(stats) {

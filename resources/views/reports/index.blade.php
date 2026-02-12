@@ -45,16 +45,16 @@
                 </select>
             </div>
             <div class="col-lg-3">
-                <label class="filter-label">Start Date</label>
-                <input type="date" class="form-control filter-select" id="startDate" value="{{ date('Y-m-01') }}">
+                <label class="filter-label">Select Date</label>
+                <input type="date" class="form-control filter-select" id="startDate" value="{{ date('Y-m-d') }}">
             </div>
-            <div class="col-lg-3">
+            {{-- <div class="col-lg-3">
                 <label class="filter-label">End Date</label>
                 <input type="date" class="form-control filter-select" id="endDate" value="{{ date('Y-m-d') }}">
-            </div>
+            </div> --}}
             <div class="col-lg-3">
                 <label class="filter-label">Grade Level</label>
-                <select class="form-select filter-select" id="gradeFilter">
+                <select class="form-select filter-select" id="gradeFilter" name="grade_filter">
                     <option value="">All Grades</option>
                     <option value="Grade 7">Grade 7</option>
                     <option value="Grade 8">Grade 8</option>
@@ -203,421 +203,6 @@
         </div>
     </div>
 
-    <!-- Detailed Reports Tabs -->
-    <div class="reports-tabs-section">
-        <ul class="nav nav-tabs custom-tabs" id="reportTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">
-                    <i class="bi bi-file-text me-2"></i>
-                    Summary Report
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="detailed-tab" data-bs-toggle="tab" data-bs-target="#detailed" type="button">
-                    <i class="bi bi-table me-2"></i>
-                    Detailed Records
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button">
-                    <i class="bi bi-person-lines-fill me-2"></i>
-                    By Student
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="insights-tab" data-bs-toggle="tab" data-bs-target="#insights" type="button">
-                    <i class="bi bi-lightbulb me-2"></i>
-                    Insights
-                </button>
-            </li>
-        </ul>
-
-        <div class="tab-content custom-tab-content" id="reportTabsContent">
-            <!-- Summary Report Tab -->
-            <div class="tab-pane fade show active" id="summary" role="tabpanel">
-                <div class="table-responsive">
-                    <table class="table report-table">
-                        <thead>
-                            <tr>
-                                <th>Grade Level</th>
-                                <th>Total Students</th>
-                                <th>Present</th>
-                                <th>Absent</th>
-                                <th>Late</th>
-                                <th>Attendance Rate</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><span class="grade-badge">Grade 7</span></td>
-                                <td>208</td>
-                                <td><span class="badge badge-success">185</span></td>
-                                <td><span class="badge badge-danger">20</span></td>
-                                <td><span class="badge badge-warning">3</span></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill" style="width: 88.9%">88.9%</div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-good">Good</span></td>
-                            </tr>
-                            <tr>
-                                <td><span class="grade-badge">Grade 8</span></td>
-                                <td>215</td>
-                                <td><span class="badge badge-success">192</span></td>
-                                <td><span class="badge badge-danger">18</span></td>
-                                <td><span class="badge badge-warning">5</span></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill" style="width: 89.3%">89.3%</div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-good">Good</span></td>
-                            </tr>
-                            <tr>
-                                <td><span class="grade-badge">Grade 9</span></td>
-                                <td>198</td>
-                                <td><span class="badge badge-success">168</span></td>
-                                <td><span class="badge badge-danger">25</span></td>
-                                <td><span class="badge badge-warning">5</span></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill" style="width: 84.8%">84.8%</div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-average">Average</span></td>
-                            </tr>
-                            <tr>
-                                <td><span class="grade-badge">Grade 10</span></td>
-                                <td>205</td>
-                                <td><span class="badge badge-success">178</span></td>
-                                <td><span class="badge badge-danger">22</span></td>
-                                <td><span class="badge badge-warning">5</span></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill" style="width: 86.8%">86.8%</div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-good">Good</span></td>
-                            </tr>
-                            <tr>
-                                <td><span class="grade-badge">Grade 11</span></td>
-                                <td>187</td>
-                                <td><span class="badge badge-success">165</span></td>
-                                <td><span class="badge badge-danger">18</span></td>
-                                <td><span class="badge badge-warning">4</span></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill" style="width: 88.2%">88.2%</div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-good">Good</span></td>
-                            </tr>
-                            <tr>
-                                <td><span class="grade-badge">Grade 12</span></td>
-                                <td>232</td>
-                                <td><span class="badge badge-success">201</span></td>
-                                <td><span class="badge badge-danger">26</span></td>
-                                <td><span class="badge badge-warning">5</span></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill" style="width: 86.6%">86.6%</div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-good">Good</span></td>
-                            </tr>
-                        </tbody>
-                        <tfoot class="table-footer">
-                            <tr>
-                                <td><strong>TOTAL</strong></td>
-                                <td><strong>1,245</strong></td>
-                                <td><strong class="text-success">1,089</strong></td>
-                                <td><strong class="text-danger">129</strong></td>
-                                <td><strong class="text-warning">27</strong></td>
-                                <td>
-                                    <div class="progress-bar-wrapper">
-                                        <div class="progress-bar-fill bg-primary" style="width: 87.5%"><strong>87.5%</strong></div>
-                                    </div>
-                                </td>
-                                <td><span class="status-badge status-good">Good</span></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Detailed Records Tab -->
-            <div class="tab-pane fade" id="detailed" role="tabpanel">
-                <div class="detailed-controls mb-3">
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                            <div class="search-box-report">
-                                <i class="bi bi-search"></i>
-                                <input type="text" class="form-control" placeholder="Search by student name or LRN...">
-                            </div>
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <button class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-filter"></i> Filter
-                            </button>
-                            <button class="btn btn-sm btn-outline-success">
-                                <i class="bi bi-file-excel"></i> Export to Excel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="table-responsive">
-                    <table class="table report-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Student Name</th>
-                                <th>LRN</th>
-                                <th>Grade</th>
-                                <th>Time In</th>
-                                <th>Status</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Feb 03, 2026</td>
-                                <td>
-                                    <div class="student-cell">
-                                        <div class="student-avatar-sm">JD</div>
-                                        <span>John Doe</span>
-                                    </div>
-                                </td>
-                                <td><code>123456789012</code></td>
-                                <td><span class="grade-badge-sm">Grade 10</span></td>
-                                <td>07:45 AM</td>
-                                <td><span class="status-dot status-present"></span> Present</td>
-                                <td><span class="text-muted">On time</span></td>
-                            </tr>
-                            <tr>
-                                <td>Feb 03, 2026</td>
-                                <td>
-                                    <div class="student-cell">
-                                        <div class="student-avatar-sm">MS</div>
-                                        <span>Maria Santos</span>
-                                    </div>
-                                </td>
-                                <td><code>123456789013</code></td>
-                                <td><span class="grade-badge-sm">Grade 9</span></td>
-                                <td>08:15 AM</td>
-                                <td><span class="status-dot status-late"></span> Late</td>
-                                <td><span class="text-warning">15 mins late</span></td>
-                            </tr>
-                            <tr>
-                                <td>Feb 03, 2026</td>
-                                <td>
-                                    <div class="student-cell">
-                                        <div class="student-avatar-sm">RC</div>
-                                        <span>Robert Chen</span>
-                                    </div>
-                                </td>
-                                <td><code>123456789014</code></td>
-                                <td><span class="grade-badge-sm">Grade 11</span></td>
-                                <td>-</td>
-                                <td><span class="status-dot status-absent"></span> Absent</td>
-                                <td><span class="text-danger">No check-in</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="pagination-wrapper mt-3">
-                    <nav>
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item"><a class="page-link" href="#">Next</a></li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
-
-            <!-- By Student Tab -->
-            <div class="tab-pane fade" id="students" role="tabpanel">
-                <div class="student-reports-grid">
-                    <div class="student-report-card">
-                        <div class="student-report-header">
-                            <div class="student-avatar-lg">JD</div>
-                            <div>
-                                <h6 class="mb-1">John Doe</h6>
-                                <small class="text-muted">Grade 10 • LRN: 123456789012</small>
-                            </div>
-                        </div>
-                        <div class="student-report-stats">
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-success">18</div>
-                                <div class="mini-stat-label">Present</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-danger">2</div>
-                                <div class="mini-stat-label">Absent</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-warning">0</div>
-                                <div class="mini-stat-label">Late</div>
-                            </div>
-                        </div>
-                        <div class="student-report-progress">
-                            <div class="progress-label">
-                                <span>Attendance Rate</span>
-                                <strong>90%</strong>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-success" style="width: 90%"></div>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary w-100 mt-3">
-                            <i class="bi bi-eye me-1"></i> View Details
-                        </button>
-                    </div>
-
-                    <div class="student-report-card">
-                        <div class="student-report-header">
-                            <div class="student-avatar-lg">MS</div>
-                            <div>
-                                <h6 class="mb-1">Maria Santos</h6>
-                                <small class="text-muted">Grade 9 • LRN: 123456789013</small>
-                            </div>
-                        </div>
-                        <div class="student-report-stats">
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-success">17</div>
-                                <div class="mini-stat-label">Present</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-danger">1</div>
-                                <div class="mini-stat-label">Absent</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-warning">2</div>
-                                <div class="mini-stat-label">Late</div>
-                            </div>
-                        </div>
-                        <div class="student-report-progress">
-                            <div class="progress-label">
-                                <span>Attendance Rate</span>
-                                <strong>85%</strong>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-success" style="width: 85%"></div>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary w-100 mt-3">
-                            <i class="bi bi-eye me-1"></i> View Details
-                        </button>
-                    </div>
-
-                    <div class="student-report-card">
-                        <div class="student-report-header">
-                            <div class="student-avatar-lg">RC</div>
-                            <div>
-                                <h6 class="mb-1">Robert Chen</h6>
-                                <small class="text-muted">Grade 11 • LRN: 123456789014</small>
-                            </div>
-                        </div>
-                        <div class="student-report-stats">
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-success">16</div>
-                                <div class="mini-stat-label">Present</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-danger">4</div>
-                                <div class="mini-stat-label">Absent</div>
-                            </div>
-                            <div class="mini-stat">
-                                <div class="mini-stat-value text-warning">0</div>
-                                <div class="mini-stat-label">Late</div>
-                            </div>
-                        </div>
-                        <div class="student-report-progress">
-                            <div class="progress-label">
-                                <span>Attendance Rate</span>
-                                <strong>80%</strong>
-                            </div>
-                            <div class="progress">
-                                <div class="progress-bar bg-warning" style="width: 80%"></div>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary w-100 mt-3">
-                            <i class="bi bi-eye me-1"></i> View Details
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Insights Tab -->
-            <div class="tab-pane fade" id="insights" role="tabpanel">
-                <div class="row g-4">
-                    <div class="col-lg-6">
-                        <div class="insight-card insight-success">
-                            <div class="insight-icon">
-                                <i class="bi bi-emoji-smile"></i>
-                            </div>
-                            <div class="insight-content">
-                                <h6>Strong Overall Performance</h6>
-                                <p>87.5% average attendance rate exceeds the target of 85%. Keep up the good work!</p>
-                                <div class="insight-meta">
-                                    <span class="badge bg-success">Positive Trend</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="insight-card insight-warning">
-                            <div class="insight-icon">
-                                <i class="bi bi-exclamation-triangle"></i>
-                            </div>
-                            <div class="insight-content">
-                                <h6>Grade 9 Needs Attention</h6>
-                                <p>Attendance rate of 84.8% is below average. Consider intervention strategies.</p>
-                                <div class="insight-meta">
-                                    <span class="badge bg-warning">Action Required</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="insight-card insight-info">
-                            <div class="insight-icon">
-                                <i class="bi bi-calendar-check"></i>
-                            </div>
-                            <div class="insight-content">
-                                <h6>Best Attendance Day</h6>
-                                <p>Mondays show the highest attendance rate at 92%, while Fridays are lowest at 83%.</p>
-                                <div class="insight-meta">
-                                    <span class="badge bg-info">Observation</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-lg-6">
-                        <div class="insight-card insight-primary">
-                            <div class="insight-icon">
-                                <i class="bi bi-trophy"></i>
-                            </div>
-                            <div class="insight-content">
-                                <h6>45 Students with Perfect Attendance</h6>
-                                <p>3.6% of students maintained 100% attendance. Consider recognition program.</p>
-                                <div class="insight-meta">
-                                    <span class="badge bg-primary">Achievement</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Export Modal -->
@@ -632,24 +217,17 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="export-options">
-                    <button class="export-option-btn" data-format="pdf">
-                        <i class="bi bi-file-pdf"></i>
-                        <span>PDF Document</span>
-                        <small>Formatted report</small>
-                    </button>
-                    <button class="export-option-btn" data-format="excel">
-                        <i class="bi bi-file-excel"></i>
-                        <span>Excel Spreadsheet</span>
-                        <small>Raw data</small>
-                    </button>
-                    <button class="export-option-btn" data-format="csv">
-                        <i class="bi bi-filetype-csv"></i>
-                        <span>CSV File</span>
-                        <small>Comma separated</small>
-                    </button>
-                </div>
+    <div class="export-options">
+        <!-- NEW: Present Students PDF option -->
+        <button class="export-option-btn" id="exportPresentStudentsBtn">
+            <i class="bi bi-file-pdf"></i>
+            <div>
+                <span>Present Students Report (PDF)</span>
+                <small>List of present students for selected date</small>
             </div>
+        </button>
+    </div>
+</div>
         </div>
     </div>
 </div>
@@ -1786,5 +1364,97 @@
             }
         }
     });
+
+    document.getElementById('exportPresentBtn')?.addEventListener('click', function() {
+    exportPresentStudentsPDF();
+});
+
+// Option 4: Export for TODAY only (most common use case)
+function exportTodayPresentStudents() {
+    const today = new Date().toISOString().split('T')[0];
+    const gradeFilter = document.getElementById('gradeFilter').value;
+    
+    const params = new URLSearchParams({
+        date: today,
+    });
+    
+    if (gradeFilter) {
+        params.append('grade_filter', gradeFilter);
+    }
+    
+    Swal.fire({
+        title: 'Generating Today\'s Present Students...',
+        html: 'Please wait',
+        timerProgressBar: true,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+        timer: 1500
+    }).then(() => {
+        window.location.href = `/reports/export-present?${params.toString()}`;
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Report Generated!',
+            confirmButtonColor: '#3b82f6'
+        });
+    });
+}
+
+// Example: Export for a specific date (useful for reports page)
+function exportPresentStudentsForDate(date, grade = null) {
+    const params = new URLSearchParams({ date: date });
+    
+    if (grade) {
+        params.append('grade_filter', grade);
+    }
+    
+    window.location.href = `/reports/export-present?${params.toString()}`;
+}
+document.getElementById('exportPresentStudentsBtn').addEventListener('click', function() {
+    exportPresentStudentsPDF();
+    
+    // Close the modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+    if (modal) {
+        modal.hide();
+    }
+});
+function exportPresentStudentsPDF() {
+    // Get the selected date (can be from a date picker or use current date)
+    const selectedDate = document.getElementById('startDate').value; // or any date input
+    const gradeFilter = document.getElementById('gradeFilter').value;
+    
+    // Build URL with parameters
+    const params = new URLSearchParams({
+        date: selectedDate,
+    });
+    
+    // Only add grade filter if a specific grade is selected
+    if (gradeFilter) {
+        params.append('grade_filter', gradeFilter);
+    }
+    
+    // Show loading notification
+    Swal.fire({
+        title: 'Generating Present Students Report...',
+        html: 'Preparing your PDF report',
+        timerProgressBar: true,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+        timer: 1500
+    }).then(() => {
+        // Trigger download
+        window.location.href = `/reports/export-present?${params.toString()}`;
+        
+        Swal.fire({
+            icon: 'success',
+            title: 'Report Generated!',
+            text: 'Your Present Students PDF is ready for download',
+            confirmButtonColor: '#3b82f6'
+        });
+    });
+}
 </script>
 @endsection

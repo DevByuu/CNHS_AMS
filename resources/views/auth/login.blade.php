@@ -118,7 +118,7 @@ body {
     box-sizing: border-box;
 
     /* Background image */
-    background-image: url("https://scontent.fceb1-1.fna.fbcdn.net/v/t39.30808-6/508134764_1175545101038112_8691161198505834852_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=833d8c&_nc_eui2=AeHPf910jdXRmUzcGUuRjSpMIEdPGcCx_VQgR08ZwLH9VNvB_dcx7swaKSTRqXpvSN-IPcoA4YS-KGOCTvI4Yf6y&_nc_ohc=-YWRce_sB7MQ7kNvwGTDVAU&_nc_oc=AdkIfVYImLnS18H9onT7tlgZ0vigLmhE86CD_zaswgixkJ-A8w8iWJlhNOzNY-R_B5eduCJrxCRAszewecVmgQ0g&_nc_zt=23&_nc_ht=scontent.fceb1-1.fna&_nc_gid=R0MMa_sKtNBe3u2bD3aPnQ&oh=00_AfsdSR-Pk7H6wSDzeW78ONWMc9VY0YYY_njrRka7Bdo8XA&oe=698718A4");
+    background-image: url(img/cnhs.png);
 
     background-size: cover;      /* Make it cover the whole page */
     background-repeat: no-repeat; /* Don’t repeat */

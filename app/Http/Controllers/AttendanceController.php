@@ -3,37 +3,96 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Student;
+use App\Models\Attendance;
+use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
+    // Display the live attendance monitor
     public function index()
     {
-        // Example data for testing
-        $attendance_today = 25; // replace with real logic
+        $totalStudents = Student::count();
 
-        return view('attendance.index', compact('attendance_today'));
+        // Use Carbon to ensure timezone consistency
+        $today = Carbon::now()->toDateString();
+
+        // Count students who have checked in today (have time_in)
+        $presentToday = Attendance::whereDate('date', $today)
+            ->whereNotNull('time_in')
+            ->count();
+
+        $absentToday = $totalStudents - $presentToday;
+
+        return view('attendance.index', compact('totalStudents', 'presentToday', 'absentToday'));
     }
 
+    // Show RFID check-in page
     public function rfidCheck()
-{
-    return view('attendance.rfid-check');
-}
+    {
+        return view('attendance.rfid-check');
+    }
 
-public function storeRfid(Request $request)
+    // Handle RFID check-in
+    public function storeRfid(Request $request)
 {
     $request->validate([
-        'rfid' => 'required|string|exists:students,rfid',
+        'rfid' => 'required|string',
     ]);
 
-    $student = \App\Models\Student::where('rfid', $request->rfid)->first();
+    // Find student by RFID
+    $student = Student::where('rfid', $request->rfid)->first();
 
-    // Mark attendance
-    $student->attendances()->create([
-        'status' => 'present', // or calculate late/absent based on time
-        'created_at' => now(),
+    if (!$student) {
+        return response()->json([
+            'success' => false,
+            'message' => 'RFID card not registered. Please contact the administrator.'
+        ], 404);
+    }
+
+    $today = Carbon::now()->toDateString();
+
+    // Check if student already checked in today
+    $alreadyCheckedIn = Attendance::where('student_id', $student->id) // Using student->id here!
+        ->whereDate('date', $today)
+        ->whereNotNull('time_in')
+        ->first();
+
+    if ($alreadyCheckedIn) {
+        $checkInTime = Carbon::parse($alreadyCheckedIn->time_in)->format('h:i A');
+        
+        return response()->json([
+            'success' => false,
+            'message' => $student->name . ' already checked in today at ' . $checkInTime
+        ], 400);
+    }
+
+    // Record attendance with STUDENT ID (not auth user id)
+    Attendance::create([
+        'student_id' => $student->id, // IMPORTANT: This is the student's ID
+        'date'       => $today,
+        'time_in'    => Carbon::now()->format('H:i:s'),
     ]);
 
-    return back()->with('success', $student->name . ' attendance recorded!');
+    // Refresh stats
+    $total = Student::count();
+    $present = Attendance::whereDate('date', $today)
+        ->whereNotNull('time_in')
+        ->count();
+    $absent = $total - $present;
+
+    return response()->json([
+        'success' => true,
+        'student' => [
+            'name'  => $student->name,
+            'lrn'   => $student->lrn,
+            'grade' => $student->grade ?? 'N/A',
+        ],
+        'stats' => [
+            'total'   => $total,
+            'present' => $present,
+            'absent'  => $absent,
+        ]
+    ]);
 }
-
 }

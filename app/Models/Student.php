@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Attendance;
 
 class Student extends Model
 {
@@ -15,11 +14,24 @@ class Student extends Model
         'lrn',
         'rfid',
         'grade',
+        'email',
     ];
 
-    // ADD THIS FUNCTION
+    /**
+     * Get all attendance records for this student
+     */
     public function attendances()
     {
-        return $this->hasMany(Attendance::class);
+        return $this->hasMany(Attendance::class, 'student_id', 'id');
+    }
+
+    /**
+     * Get today's attendance for this student
+     */
+    public function todayAttendance()
+    {
+        return $this->attendances()
+            ->whereDate('date', today())
+            ->first();
     }
 }

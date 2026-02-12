@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Models\Attendance;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class ReportsController extends Controller
@@ -12,6 +15,30 @@ class ReportsController extends Controller
     /**
      * Display the reports page
      */
+
+     public function export(Request $request)
+    {
+        $format = $request->input('format', 'pdf');
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', Carbon::now()->format('Y-m-d'));
+        $gradeFilter = $request->input('grade_filter', null);
+
+        // Parse dates
+        $startDate = Carbon::parse($startDate);
+        $endDate = Carbon::parse($endDate);
+
+        $data = $this->getReportData($startDate, $endDate, $gradeFilter);
+
+        if ($format === 'pdf') {
+            return $this->exportPDF($data, $startDate, $endDate, $gradeFilter);
+        } elseif ($format === 'excel') {
+            return $this->exportExcel($data, $startDate, $endDate, $gradeFilter);
+        }
+
+        return response()->json(['error' => 'Invalid format'], 400);
+    }
+
+
     public function index()
     {
         $startDate = request('start_date', Carbon::now()->startOfMonth());
@@ -244,35 +271,39 @@ class ReportsController extends Controller
      * Get recent attendance records
      */
     private function getRecentAttendance($startDate, $endDate, $grade = null)
-    {
-        $query = Attendance::with('student')
-            ->whereBetween('date', [$startDate, $endDate])
-            ->orderBy('date', 'desc')
-            ->orderBy('time_in', 'desc')
-            ->limit(50);
+{
+    $query = Attendance::with('student')
+        ->whereBetween('date', [$startDate, $endDate])
+        ->orderBy('date', 'desc')
+        ->orderBy('time_in', 'desc')
+        ->limit(50);
 
-        if ($grade) {
-            $query->whereHas('student', function($q) use ($grade) {
-                $q->where('grade', $grade);
-            });
-        }
-
-        $records = $query->get();
-
-        return $records->map(function($attendance) {
-            return [
-                'date' => Carbon::parse($attendance->date)->format('M d, Y'),
-                'student_name' => $attendance->student->name,
-                'lrn' => $attendance->student->lrn,
-                'grade' => $attendance->student->grade,
-                'time_in' => $attendance->time_in 
-                    ? Carbon::parse($attendance->time_in)->format('h:i A')
-                    : '-',
-                'status' => $attendance->status,
-                'remarks' => $this->getRemarks($attendance)
-            ];
-        })->toArray();
+    if ($grade) {
+        $query->whereHas('student', function($q) use ($grade) {
+            $q->where('grade', $grade);
+        });
     }
+
+    // Remove attendance records with missing students
+    $records = $query->get()->filter(function ($attendance) {
+        return $attendance->student !== null;
+    });
+
+    return $records->map(function($attendance) {
+        return [
+            'date' => Carbon::parse($attendance->date)->format('M d, Y'),
+            'student_name' => $attendance->student->name,
+            'lrn' => $attendance->student->lrn,
+            'grade' => $attendance->student->grade,
+            'time_in' => $attendance->time_in 
+                ? Carbon::parse($attendance->time_in)->format('h:i A')
+                : '-',
+            'status' => $attendance->status,
+            'remarks' => $this->getRemarks($attendance)
+        ];
+    })->toArray();
+}
+
 
     /**
      * Get student-wise reports
@@ -377,60 +408,279 @@ class ReportsController extends Controller
     /**
      * Export reports
      */
-    public function export(Request $request)
-    {
-        $format = $request->get('format', 'csv');
-        $startDate = $request->get('start_date', Carbon::now()->startOfMonth());
-        $endDate = $request->get('end_date', Carbon::now());
-        $grade = $request->get('grade');
-        $reportType = $request->get('report_type', 'summary');
-
-        $stats = $this->getStatistics($startDate, $endDate, $grade);
-
-        switch ($format) {
-            case 'pdf':
-                if ($reportType === 'daily_list') {
-                    return $this->exportDailyAttendanceListPDF($startDate, $grade);
-                }
-                return $this->exportPDF($stats, $startDate, $endDate, $grade);
-            case 'csv':
-                return $this->exportCSV($stats, $startDate, $endDate);
-            case 'excel':
-                return $this->exportExcel($stats, $startDate, $endDate);
-            default:
-                return redirect()->back()->with('error', 'Invalid export format');
-        }
-    }
 
     /**
      * Export as PDF with school logo and professional design
      */
-    private function exportPDF($stats, $startDate, $endDate, $grade = null)
-    {
-        $data = [
-            'school_name' => 'Cebu National High School',
-            'school_address' => 'Cebu City, Philippines',
-            'report_title' => 'Attendance Report',
-            'date_range' => Carbon::parse($startDate)->format('F d, Y') . ' - ' . Carbon::parse($endDate)->format('F d, Y'),
-            'generated_date' => Carbon::now()->format('F d, Y h:i A'),
-            'grade_filter' => $grade ?: 'All Grades',
-            'stats' => $stats,
-            'startDate' => Carbon::parse($startDate)->format('F d, Y'),
-            'endDate' => Carbon::parse($endDate)->format('F d, Y'),
-        ];
-
-        // Load the PDF view
-        $pdf = \PDF::loadView('reports.pdf', $data);
-        
-        // Set paper size and orientation
-        $pdf->setPaper('a4', 'portrait');
-        
-        // Generate filename
-        $filename = 'CNHS_Attendance_Report_' . Carbon::now()->format('Y-m-d_His') . '.pdf';
-        
-        // Download the PDF
-        return $pdf->download($filename);
+ private function exportPDF($stats, $startDate, $endDate, $grade = null)
+{
+    // CNHS logo
+    $logoPath = public_path('img/cnhs.png');
+    $cnhs_logo_base64 = '';
+    if (File::exists($logoPath)) {
+        $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+        $data = File::get($logoPath);
+        $cnhs_logo_base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
     }
+
+    // DepEd logo
+    $depedLogoPath = public_path('img/deped-logo.png');
+    $deped_logo_base64 = '';
+    if (File::exists($depedLogoPath)) {
+        $type = pathinfo($depedLogoPath, PATHINFO_EXTENSION);
+        $data = File::get($depedLogoPath);
+        $deped_logo_base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+    }
+
+    $startDate = Carbon::parse($startDate);
+    $endDate = Carbon::parse($endDate);
+
+    // ✨ FORMAT DATE FOR PDF SUMMARY SECTION
+    // If same day, show single date; otherwise show range
+    if ($startDate->isSameDay($endDate)) {
+        $report_date = $startDate->format('F d, Y'); // "February 12, 2026"
+    } else {
+        $report_date = $startDate->format('F d, Y') . ' - ' . $endDate->format('F d, Y');
+    }
+
+    // ✨ FORMAT GRADE FILTER FOR PDF SUMMARY SECTION
+    $grade_filter = $grade ?: 'All Grades';
+
+    $presentStudentsQuery = Attendance::with('student')
+        ->whereBetween('date', [$startDate, $endDate])
+        ->where('status', 'present')
+        ->select('student_id', 'date', 'time_in')
+        ->orderBy('date', 'desc')
+        ->orderBy('time_in', 'asc');
+
+    if ($grade) {
+        $presentStudentsQuery->whereHas('student', function($q) use ($grade) {
+            $q->where('grade', $grade);
+        });
+    }
+
+    // Remove records without students
+    $presentRecords = $presentStudentsQuery->get()->filter(function ($attendance) {
+        return $attendance->student !== null;
+    });
+
+    // Safe mapping
+    $presentStudents = $presentRecords->map(function($attendance) {
+        if (!$attendance->student) {
+            return null;
+        }
+
+        $student = $attendance->student;
+
+        return [
+            'lrn' => $student->lrn ?? 'N/A',
+            'name' => $student->name ?? 'Unknown',
+            'grade' => $student->grade ?? 'N/A',
+            'section' => 'N/A',
+            'sex' => 'N/A',
+            'time_in' => $attendance->time_in
+                ? Carbon::parse($attendance->time_in)->format('h:i A')
+                : '-',
+        ];
+    })->filter()->values()->toArray();
+
+    $grades = $grade
+        ? [$grade]
+        : ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
+
+    $gradeBreakdown = [];
+    foreach ($grades as $gradeLevel) {
+        $totalStudents = Student::where('grade', $gradeLevel)->count();
+
+        $presentCount = Attendance::whereBetween('date', [$startDate, $endDate])
+            ->where('status', 'present')
+            ->whereHas('student', function($q) use ($gradeLevel) {
+                $q->where('grade', $gradeLevel);
+            })
+            ->count();
+
+        $rate = $totalStudents > 0
+            ? round(($presentCount / ($totalStudents * max($stats['totalDays'], 1))) * 100, 1)
+            : 0;
+
+        $gradeBreakdown[] = [
+            'grade' => $gradeLevel,
+            'present' => $presentCount,
+            'total' => $totalStudents,
+            'rate' => $rate
+        ];
+    }
+
+    $data = [
+        'school_name' => 'Concepcion National High School',
+        'school_address' => 'Concepcion, Mabini, Bohol',
+        'report_title' => 'Present Students Report',
+        
+        // ✨ THESE NOW MATCH YOUR PDF TEMPLATE VARIABLES
+        'report_date' => $report_date,           // ← Populates {{ $report_date }} in template
+        'grade_filter' => $grade_filter,         // ← Populates {{ $grade_filter }} in template
+        
+        'generated_date' => Carbon::now()->format('F d, Y h:i A'),
+        'cnhs_logo_base64' => $cnhs_logo_base64,
+        'deped_logo_base64' => $deped_logo_base64,
+
+        'stats' => [
+            'totalPresent' => count($presentStudents),      // ← Populates {{ $stats['totalPresent'] }}
+            'totalEnrolled' => $stats['totalStudents'],     // ← Populates {{ $stats['totalEnrolled'] }}
+            'attendanceRate' => $stats['avgAttendance'],    // ← Populates {{ $stats['attendanceRate'] }}
+            'gradeBreakdown' => $gradeBreakdown,            // ← Populates {{ $stats['gradeBreakdown'] }}
+            'totalDays' => $stats['totalDays'],
+            'totalStudents' => $stats['totalStudents'],
+            'avgAttendance' => $stats['avgAttendance'],
+            'totalAbsences' => $stats['totalAbsences'],
+            'perfectAttendance' => $stats['perfectAttendance'],
+            'gradeSummary' => $stats['gradeSummary'],
+            'recentAttendance' => $stats['recentAttendance'],
+        ],
+
+        'presentStudents' => $presentStudents,
+    ];
+
+    $pdf = \PDF::loadView('reports.pdf', $data);
+    $pdf->setPaper('a4', 'portrait');
+
+    // ✨ IMPROVED FILENAME WITH DATE RANGE AND GRADE
+    $filename = 'CNHS_Present_Students_' . $startDate->format('Y-m-d');
+    if (!$startDate->isSameDay($endDate)) {
+        $filename .= '_to_' . $endDate->format('Y-m-d');
+    }
+    if ($grade) {
+        $filename .= '_' . str_replace(' ', '_', $grade);
+    }
+    $filename .= '.pdf';
+
+    return $pdf->download($filename);
+}
+
+// Present Students PDF Export
+public function exportPresentStudents(Request $request)
+{
+    $date = $request->input('date', now()->format('Y-m-d'));
+    $gradeFilter = $request->input('grade_filter', null);
+
+    $reportDate = Carbon::parse($date);
+
+    // Base query for present students
+    $presentQuery = DB::table('attendances')
+        ->join('students', 'attendances.student_id', '=', 'students.id')
+        ->select('students.lrn', 'students.name', 'students.grade', 'attendances.time_in', 'attendances.status')
+        ->where('attendances.date', $reportDate->format('Y-m-d'))
+        ->where('attendances.status', 'present')
+        ->orderBy('students.grade')
+        ->orderBy('students.name');
+
+    if ($gradeFilter) {
+        $presentQuery->where('students.grade', $gradeFilter);
+    }
+
+    $presentStudents = $presentQuery->get();
+
+    // Total present
+    $totalPresent = $presentStudents->count();
+
+    // Total enrolled
+    $enrolledQuery = DB::table('students');
+    if ($gradeFilter) {
+        $enrolledQuery->where('grade', $gradeFilter);
+    }
+    $totalEnrolled = $enrolledQuery->count();
+
+    // Attendance rate
+    $attendanceRate = $totalEnrolled > 0
+        ? round(($totalPresent / $totalEnrolled) * 100, 2)
+        : 0;
+
+    // Grade breakdown only for "All Grades"
+    $gradeBreakdown = [];
+    if (!$gradeFilter) {
+        $grades = ['Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
+        foreach ($grades as $grade) {
+            $gradePresent = DB::table('attendances')
+                ->join('students', 'attendances.student_id', '=', 'students.id')
+                ->where('attendances.date', $reportDate->format('Y-m-d'))
+                ->where('attendances.status', 'present')
+                ->where('students.grade', $grade)
+                ->count();
+
+            $gradeTotal = DB::table('students')
+                ->where('grade', $grade)
+                ->count();
+
+            $gradeRate = $gradeTotal > 0 ? round(($gradePresent / $gradeTotal) * 100, 2) : 0;
+
+            $gradeBreakdown[] = [
+                'grade' => $grade,
+                'present' => $gradePresent,
+                'total' => $gradeTotal,
+                'rate' => $gradeRate
+            ];
+        }
+    }
+
+    $pdfData = [
+        'school_name' => config('app.school_name', 'Concepcion National High School'),
+        'school_address' => config('app.school_address', 'Concepcion, Mabini, Bohol'),
+        'report_date' => $reportDate->format('F d, Y'),
+        'grade_filter' => $gradeFilter ?? 'All Grades',
+        'generated_date' => now()->format('F d, Y g:i A'),
+        'presentStudents' => $presentStudents->map(function($student){
+            return [
+                'lrn' => $student->lrn,
+                'name' => $student->name,
+                'grade' => $student->grade,
+                'time_in' => $student->time_in ? Carbon::parse($student->time_in)->format('h:i A') : '-',
+            ];
+        })->toArray(),
+        'stats' => [
+            'totalPresent' => $totalPresent,
+            'totalEnrolled' => $totalEnrolled,
+            'attendanceRate' => $attendanceRate,
+            'gradeBreakdown' => $gradeBreakdown
+        ],
+        'cnhs_logo_base64' => $this->getLogoBase64('cnhs.png'),
+        'deped_logo_base64' => $this->getLogoBase64('deped-logo.png'),
+    ];
+
+$pdf = app('dompdf.wrapper');
+$pdf->loadView('reports.pdf', $pdfData);
+$pdf->setPaper('letter', 'portrait');
+
+// Generate a random filename
+$filename = 'CNHS_PRESENT-' . $reportDate->format('Y-m-d');
+
+if ($gradeFilter) {
+    $filename .= '-' . str_replace(' ', '-', strtolower($gradeFilter));
+}
+
+// Append random 6-character string to make it unique
+$filename .= '-' . Str::random(6) . '.pdf';
+
+return $pdf->download($filename);
+}
+
+
+
+    /**
+     * Get base64 encoded logo
+     */
+    private function getLogoBase64($filename)
+    {
+        $path = public_path('img/' . $filename);
+        
+        if (file_exists($path)) {
+            $type = pathinfo($path, PATHINFO_EXTENSION);
+            $data = file_get_contents($path);
+            return 'data:image/' . $type . ';base64,' . base64_encode($data);
+        }
+        
+        return null;
+    }
+
 
     /**
      * Export daily attendance list by grade level
@@ -492,9 +742,10 @@ class ReportsController extends Controller
             ];
         }
         
+        // Prepare all data for the view
         $data = [
-            'school_name' => 'Cebu National High School',
-            'school_address' => 'Cebu City, Philippines',
+            'school_name' => 'Concepcion National High School',
+            'school_address' => 'Concepcion, Tarlac',
             'report_title' => $grade ? "Daily Attendance List - {$grade}" : 'Daily Attendance List - All Grades',
             'report_date' => $targetDate->format('F d, Y (l)'),
             'generated_date' => Carbon::now()->format('F d, Y h:i A'),

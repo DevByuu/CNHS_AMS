@@ -75,15 +75,17 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('/admin/users', [UserController::class, 'store'])
         ->name('users.store');
 
-    // Attendance
+    // Attendance Routes
     Route::get('/attendance', [AttendanceController::class, 'index'])
         ->name('attendance.index');
+    
+    // ADD THIS LINE - RFID Check-in endpoint
+    Route::post('/attendance/checkin', [AttendanceController::class, 'storeRfid'])
+        ->name('attendance.checkin');
 
     // Reports
     Route::get('/reports', [ReportsController::class, 'index'])
         ->name('reports.index');
-
-    
 });
 
 Route::prefix('reports')->group(function () {
@@ -93,3 +95,22 @@ Route::prefix('reports')->group(function () {
 
 // Real-time API endpoint
 Route::get('/api/reports/realtime', [ReportsController::class, 'realtimeData'])->name('reports.realtime');
+
+Route::middleware(['auth'])->group(function () {
+    // Reports page
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    
+    // Export full attendance report (with date range)
+    Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
+    
+    // Export present students report (single date)
+    Route::get('/reports/export-present', [ReportsController::class, 'exportPresentStudents'])
+         ->name('reports.export.present');
+});
+
+// API routes for real-time data
+Route::middleware(['auth'])->prefix('api')->group(function () {
+    // Get real-time report data
+    Route::post('/reports/realtime', [ReportsController::class, 'getRealTimeData'])
+         ->name('api.reports.realtime');
+});

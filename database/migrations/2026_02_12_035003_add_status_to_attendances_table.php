@@ -6,24 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
-{
-    Schema::table('attendances', function (Blueprint $table) {
-        $table->string('status')->default('present'); // or nullable
-    });
-}
+    public function up(): void
+    {
+        Schema::table('attendances', function (Blueprint $table) {
+            $table->string('status')->default('present')->after('date');
+        });
+    }
 
-
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('attendances', function (Blueprint $table) {
-            //
+            $table->dropColumn('status');
         });
     }
 };
