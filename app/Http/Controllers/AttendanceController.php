@@ -95,4 +95,47 @@ class AttendanceController extends Controller
         ]
     ]);
 }
+public function todayCheckIns()
+{
+    $today = Carbon::today();
+    
+    // Get all check-ins for today with student info
+    $checkIns = DB::table('attendances')
+        ->join('students', 'attendances.student_id', '=', 'students.id')
+        ->where('attendances.date', $today->format('Y-m-d'))
+        ->where('attendances.status', 'present')
+        ->select(
+            'students.name as student_name',
+            'students.lrn',
+            'students.grade',
+            'attendances.time_in',
+            'attendances.created_at'
+        )
+        ->orderBy('attendances.created_at', 'desc')
+        ->get()
+        ->map(function($checkIn) {
+            return [
+                'student_name' => $checkIn->student_name,
+                'lrn' => $checkIn->lrn,
+                'grade' => $checkIn->grade,
+                'time_in' => $checkIn->time_in ? Carbon::parse($checkIn->time_in)->format('h:i A') : '-',
+                'created_at' => $checkIn->created_at
+            ];
+        });
+    
+    // Get stats
+    $totalStudents = Student::count();
+    $presentCount = $checkIns->count();
+    $absentCount = $totalStudents - $presentCount;
+    
+    return response()->json([
+        'success' => true,
+        'checkIns' => $checkIns,
+        'stats' => [
+            'total' => $totalStudents,
+            'present' => $presentCount,
+            'absent' => $absentCount
+        ]
+    ]);
+}
 }

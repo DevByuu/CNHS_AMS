@@ -51,23 +51,6 @@ class ReportsController extends Controller
     }
 
     /**
-     * Get real-time data for AJAX requests
-     */
-    public function realtimeData(Request $request)
-    {
-        $startDate = $request->get('start_date', Carbon::now()->startOfMonth());
-        $endDate = $request->get('end_date', Carbon::now());
-        $grade = $request->get('grade');
-
-        $stats = $this->getStatistics($startDate, $endDate, $grade);
-        
-        return response()->json(array_merge($stats, [
-            'success' => true,
-            'timestamp' => Carbon::now()->toISOString()
-        ]));
-    }
-
-    /**
      * Calculate statistics for the given period
      */
     private function getStatistics($startDate, $endDate, $grade = null)
@@ -595,32 +578,49 @@ public function exportPresentStudents(Request $request)
         ? round(($totalPresent / $totalEnrolled) * 100, 2)
         : 0;
 
-    // Grade breakdown only for "All Grades"
+    // ✅ FIXED: Fetch grade breakdown with correct grade format
     $gradeBreakdown = [];
-    if (!$gradeFilter) {
-        $grades = ['Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
-        foreach ($grades as $grade) {
-            $gradePresent = DB::table('attendances')
-                ->join('students', 'attendances.student_id', '=', 'students.id')
-                ->where('attendances.date', $reportDate->format('Y-m-d'))
-                ->where('attendances.status', 'present')
-                ->where('students.grade', $grade)
-                ->count();
+    
+    // Define grades - adjust this based on how grades are stored in your database
+    // If stored as "11", "12", etc., use this:
+    $gradeNumbers = $gradeFilter 
+        ? [str_replace('Grade ', '', $gradeFilter)] 
+        : ['7', '8', '9', '10', '11', '12'];
+    
+    // If stored as "Grade 7", "Grade 8", etc., use this instead:
+    $gradeNumbers = $gradeFilter 
+        ? [$gradeFilter] 
+        : ['Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
+    
+    foreach ($gradeNumbers as $gradeNum) {
+        // Query using the actual format in database
+        $gradePresent = DB::table('attendances')
+            ->join('students', 'attendances.student_id', '=', 'students.id')
+            ->where('attendances.date', $reportDate->format('Y-m-d'))
+            ->where('attendances.status', 'present')
+            ->where('students.grade', $gradeNum) // ✅ Use correct format
+            ->count();
 
-            $gradeTotal = DB::table('students')
-                ->where('grade', $grade)
-                ->count();
+        $gradeTotal = DB::table('students')
+            ->where('grade', $gradeNum) // ✅ Use correct format
+            ->count();
 
-            $gradeRate = $gradeTotal > 0 ? round(($gradePresent / $gradeTotal) * 100, 2) : 0;
+        $gradeRate = $gradeTotal > 0 ? round(($gradePresent / $gradeTotal) * 100, 2) : 0;
 
-            $gradeBreakdown[] = [
-                'grade' => $grade,
-                'present' => $gradePresent,
-                'total' => $gradeTotal,
-                'rate' => $gradeRate
-            ];
-        }
+        $gradeBreakdown[] = [
+            'grade' => 'Grade ' . $gradeNum, // ✅ Format for display
+            'present' => $gradePresent,
+            'total' => $gradeTotal,
+            'rate' => $gradeRate
+        ];
     }
+
+    // ✅ DEBUG: Add this temporarily to see what's happening
+    \Log::info('Grade Breakdown Debug', [
+        'date' => $reportDate->format('Y-m-d'),
+        'gradeBreakdown' => $gradeBreakdown,
+        'presentStudents' => $presentStudents->toArray()
+    ]);
 
     $pdfData = [
         'school_name' => config('app.school_name', 'Concepcion National High School'),
@@ -646,23 +646,18 @@ public function exportPresentStudents(Request $request)
         'deped_logo_base64' => $this->getLogoBase64('deped-logo.png'),
     ];
 
-$pdf = app('dompdf.wrapper');
-$pdf->loadView('reports.pdf', $pdfData);
-$pdf->setPaper('letter', 'portrait');
+    $pdf = app('dompdf.wrapper');
+    $pdf->loadView('reports.pdf', $pdfData);
+    $pdf->setPaper('letter', 'portrait');
 
-// Generate a random filename
-$filename = 'CNHS_PRESENT-' . $reportDate->format('Y-m-d');
+    $filename = 'CNHS_PRESENT-' . $reportDate->format('Y-m-d');
+    if ($gradeFilter) {
+        $filename .= '-' . str_replace(' ', '-', strtolower($gradeFilter));
+    }
+    $filename .= '-' . Str::random(6) . '.pdf';
 
-if ($gradeFilter) {
-    $filename .= '-' . str_replace(' ', '-', strtolower($gradeFilter));
+    return $pdf->download($filename);
 }
-
-// Append random 6-character string to make it unique
-$filename .= '-' . Str::random(6) . '.pdf';
-
-return $pdf->download($filename);
-}
-
 
 
     /**
@@ -841,4 +836,21 @@ return $pdf->download($filename);
         // To implement Excel: composer require maatwebsite/excel
         return $this->exportCSV($stats, $startDate, $endDate);
     }
+
+    /**
+ * Get real-time data for AJAX requests
+ */
+public function realtimeData(Request $request)
+{
+    $startDate = $request->get('start_date', Carbon::now()->startOfMonth());
+    $endDate = $request->get('end_date', Carbon::now());
+    $grade = $request->get('grade');
+
+    $stats = $this->getStatistics($startDate, $endDate, $grade);
+    
+    return response()->json(array_merge($stats, [
+        'success' => true,
+        'timestamp' => Carbon::now()->toISOString()
+    ]));
+}
 }

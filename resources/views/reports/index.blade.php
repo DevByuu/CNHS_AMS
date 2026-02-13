@@ -917,7 +917,7 @@
     let currentChartType = 'line';
     let trendChart;
 
-    function createTrendChart(type) {
+    function createTrendChart(type, labels, values) {
         const ctx = document.getElementById('trendChart').getContext('2d');
         
         if (trendChart) {
@@ -927,10 +927,10 @@
         trendChart = new Chart(ctx, {
             type: type,
             data: {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                labels: labels || ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
                 datasets: [{
                     label: 'Attendance Rate (%)',
-                    data: [85, 87, 89, 87.5],
+                    data: values || [85, 87, 89, 87.5],
                     borderColor: '#3b82f6',
                     backgroundColor: type === 'line' ? 'rgba(59, 130, 246, 0.1)' : '#3b82f6',
                     tension: 0.4,
@@ -949,7 +949,7 @@
                 scales: {
                     y: {
                         beginAtZero: false,
-                        min: 80,
+                        min: 0,
                         max: 100,
                         ticks: {
                             callback: function(value) {
@@ -962,6 +962,7 @@
         });
     }
 
+    // Initialize charts with default data
     createTrendChart('line');
 
     // Chart type switcher
@@ -970,7 +971,12 @@
             document.querySelectorAll('[data-chart]').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             const chartType = this.dataset.chart;
-            createTrendChart(chartType);
+            currentChartType = chartType;
+            
+            // Re-create chart with current data
+            if (trendChart && trendChart.data) {
+                createTrendChart(chartType, trendChart.data.labels, trendChart.data.datasets[0].data);
+            }
         });
     });
 
@@ -981,7 +987,7 @@
         data: {
             labels: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
             datasets: [{
-                data: [208, 215, 198, 205, 187, 232],
+                data: [0, 0, 0, 0, 0, 0],
                 backgroundColor: [
                     '#3b82f6',
                     '#10b981',
@@ -1012,7 +1018,33 @@
     // Real-time Data Fetch Function
     async function fetchLatestData() {
         try {
-            const response = await fetch('/api/reports/realtime', {
+            const startDate = document.getElementById('startDate').value;
+            const grade = document.getElementById('gradeFilter').value;
+            
+            // Calculate end date based on report type
+            const reportType = document.getElementById('reportType').value;
+            let endDate = startDate;
+            
+            if (reportType === 'weekly') {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + 7);
+                endDate = date.toISOString().split('T')[0];
+            } else if (reportType === 'monthly') {
+                const date = new Date(startDate);
+                const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+                endDate = lastDay.toISOString().split('T')[0];
+            }
+
+            const params = new URLSearchParams({
+                start_date: startDate,
+                end_date: endDate
+            });
+            
+            if (grade) {
+                params.append('grade', grade);
+            }
+
+            const response = await fetch(`/reports/realtime-data?${params.toString()}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1030,28 +1062,8 @@
             
         } catch (error) {
             console.error('Error fetching real-time data:', error);
-            // Continue with simulated updates in case of error
-            updateWithSimulatedData();
+            showErrorNotification('Failed to fetch latest data');
         }
-    }
-
-    // Simulated real-time updates (for demo purposes)
-    function updateWithSimulatedData() {
-        // Simulate small random changes
-        const stats = {
-            totalDays: parseInt(document.getElementById('totalDays').textContent) || 20,
-            avgAttendance: parseFloat(document.getElementById('avgAttendance').textContent) || 87.5,
-            totalAbsences: parseInt(document.getElementById('totalAbsences').textContent) || 245,
-            perfectAttendance: parseInt(document.getElementById('perfectAttendance').textContent) || 45
-        };
-
-        // Add small random variations
-        stats.avgAttendance = Math.min(100, Math.max(80, stats.avgAttendance + (Math.random() - 0.5) * 0.5));
-        stats.totalAbsences = Math.max(0, stats.totalAbsences + Math.floor((Math.random() - 0.5) * 5));
-        stats.perfectAttendance = Math.max(0, stats.perfectAttendance + Math.floor((Math.random() - 0.5) * 2));
-
-        updateDashboard(stats);
-        updateLastUpdateTime();
     }
 
     // Update Dashboard with new data
@@ -1076,11 +1088,11 @@
             }
 
             // Update charts if data provided
-            if (data.trendData) {
+            if (data.trendData && data.trendData.labels && data.trendData.values) {
                 updateTrendChart(data.trendData);
             }
 
-            if (data.gradeData) {
+            if (data.gradeData && data.gradeData.values) {
                 updateGradeChart(data.gradeData);
             }
 
@@ -1101,7 +1113,7 @@
         const element = document.getElementById(elementId);
         if (!element) return;
 
-        const startValue = parseFloat(element.textContent) || 0;
+        const startValue = parseFloat(element.textContent.replace(/[^\d.-]/g, '')) || 0;
         const duration = 500;
         const steps = 20;
         const increment = (endValue - startValue) / steps;
@@ -1124,9 +1136,7 @@
     // Update trend chart
     function updateTrendChart(newData) {
         if (trendChart && newData.labels && newData.values) {
-            trendChart.data.labels = newData.labels;
-            trendChart.data.datasets[0].data = newData.values;
-            trendChart.update('none'); // Smooth update without animation
+            createTrendChart(currentChartType, newData.labels, newData.values);
         }
     }
 
@@ -1134,7 +1144,7 @@
     function updateGradeChart(newData) {
         if (gradeChart && newData.values) {
             gradeChart.data.datasets[0].data = newData.values;
-            gradeChart.update('none');
+            gradeChart.update('active');
         }
     }
 
@@ -1170,7 +1180,6 @@
 
     // Show update notification
     function showUpdateNotification() {
-        // Optional: Show a subtle toast notification
         const toast = document.createElement('div');
         toast.className = 'position-fixed bottom-0 end-0 p-3';
         toast.style.zIndex = '9999';
@@ -1189,6 +1198,26 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
+    // Show error notification
+    function showErrorNotification(message) {
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '9999';
+        toast.innerHTML = `
+            <div class="toast show align-items-center text-white bg-danger border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.parentElement.remove()"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
     // Start auto-refresh
     function startAutoRefresh() {
         if (refreshInterval) {
@@ -1196,7 +1225,7 @@
         }
 
         refreshInterval = setInterval(() => {
-            if (autoRefreshEnabled) {
+            if (autoRefreshEnabled && !document.hidden) {
                 console.log('Auto-refreshing data...');
                 fetchLatestData();
             }
@@ -1253,54 +1282,65 @@
         }, 1000);
     });
 
-    // Start auto-refresh on page load
-    startAutoRefresh();
-    
-    // Initial data fetch
-    setTimeout(() => {
-        fetchLatestData();
-    }, 1000);
-
     // Export button
     document.getElementById('exportBtn').addEventListener('click', function() {
         const modal = new bootstrap.Modal(document.getElementById('exportModal'));
         modal.show();
     });
 
-    // Export format selection
-    document.querySelectorAll('.export-option-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const format = this.dataset.format;
-            
-            Swal.fire({
-                title: 'Generating Report...',
-                html: `Preparing your ${format.toUpperCase()} report`,
-                timerProgressBar: true,
-                didOpen: () => {
-                    Swal.showLoading();
-                },
-                timer: 2000
-            }).then(() => {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Report Generated!',
-                    text: `Your ${format.toUpperCase()} report is ready for download`,
-                    confirmButtonColor: '#3b82f6'
-                }).then(() => {
-                    // Here you would trigger the actual download
-                    window.location.href = `/reports/export?format=${format}`;
-                });
-            });
-
-            bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
-        });
+    // Export Present Students PDF
+    document.getElementById('exportPresentStudentsBtn').addEventListener('click', function() {
+        exportPresentStudentsPDF();
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+        if (modal) {
+            modal.hide();
+        }
     });
 
-    // Generate Report
+    function exportPresentStudentsPDF() {
+        // Get the selected date and grade filter
+        const selectedDate = document.getElementById('startDate').value;
+        const gradeFilter = document.getElementById('gradeFilter').value;
+        
+        // Build URL with parameters
+        const params = new URLSearchParams({
+            date: selectedDate,
+        });
+        
+        // Only add grade filter if a specific grade is selected
+        if (gradeFilter) {
+            params.append('grade_filter', gradeFilter);
+        }
+        
+        // Show loading notification
+        Swal.fire({
+            title: 'Generating Present Students Report...',
+            html: `Preparing PDF for ${selectedDate}${gradeFilter ? ' (' + gradeFilter + ')' : ' (All Grades)'}`,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            timer: 1500
+        }).then(() => {
+            // Trigger download
+            window.location.href = `/reports/export-present?${params.toString()}`;
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Report Generated!',
+                text: 'Your Present Students PDF is ready for download',
+                confirmButtonColor: '#3b82f6',
+                timer: 2000
+            });
+        });
+    }
+
+    // Generate Report with filters
     document.getElementById('generateReport').addEventListener('click', function() {
         const reportType = document.getElementById('reportType').value;
         const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
         const grade = document.getElementById('gradeFilter').value;
 
         Swal.fire({
@@ -1310,26 +1350,32 @@
             didOpen: () => {
                 Swal.showLoading();
             },
-            timer: 1500
+            timer: 1000
         }).then(() => {
+            // Fetch new data based on filters
+            fetchLatestData();
+            
             Swal.fire({
                 icon: 'success',
                 title: 'Report Generated!',
                 text: 'Your report has been updated with the selected filters',
-                confirmButtonColor: '#3b82f6'
+                confirmButtonColor: '#3b82f6',
+                timer: 2000
             });
-            
-            // Fetch new data based on filters
-            fetchLatestData();
         });
     });
 
     // Reset Filters
     document.getElementById('resetFilters').addEventListener('click', function() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        
         document.getElementById('reportType').value = 'monthly';
-        document.getElementById('startDate').value = '{{ date("Y-m-01") }}';
-        document.getElementById('endDate').value = '{{ date("Y-m-d") }}';
+        document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
         document.getElementById('gradeFilter').value = '';
+        
+        // Refresh data
+        fetchLatestData();
     });
 
     // Report type change handler
@@ -1337,20 +1383,26 @@
         const value = this.value;
         const today = new Date();
         const startDateInput = document.getElementById('startDate');
-        const endDateInput = document.getElementById('endDate');
 
         if (value === 'daily') {
             startDateInput.value = today.toISOString().split('T')[0];
-            endDateInput.value = today.toISOString().split('T')[0];
         } else if (value === 'weekly') {
             const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
             startDateInput.value = weekAgo.toISOString().split('T')[0];
-            endDateInput.value = today.toISOString().split('T')[0];
         } else if (value === 'monthly') {
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
             startDateInput.value = firstDay.toISOString().split('T')[0];
-            endDateInput.value = today.toISOString().split('T')[0];
         }
+    });
+
+    // Grade filter change - auto refresh
+    document.getElementById('gradeFilter').addEventListener('change', function() {
+        fetchLatestData();
+    });
+
+    // Start date change - auto refresh
+    document.getElementById('startDate').addEventListener('change', function() {
+        fetchLatestData();
     });
 
     // Page visibility change - pause/resume auto-refresh
@@ -1365,96 +1417,19 @@
         }
     });
 
-    document.getElementById('exportPresentBtn')?.addEventListener('click', function() {
-    exportPresentStudentsPDF();
+    // Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default date to TODAY (not first day of month)
+    const today = new Date();
+    document.getElementById('startDate').value = today.toISOString().split('T')[0];
+    
+    // Start auto-refresh
+    startAutoRefresh();
+    
+    // Initial data fetch
+    setTimeout(() => {
+        fetchLatestData();
+    }, 500);
 });
-
-// Option 4: Export for TODAY only (most common use case)
-function exportTodayPresentStudents() {
-    const today = new Date().toISOString().split('T')[0];
-    const gradeFilter = document.getElementById('gradeFilter').value;
-    
-    const params = new URLSearchParams({
-        date: today,
-    });
-    
-    if (gradeFilter) {
-        params.append('grade_filter', gradeFilter);
-    }
-    
-    Swal.fire({
-        title: 'Generating Today\'s Present Students...',
-        html: 'Please wait',
-        timerProgressBar: true,
-        didOpen: () => {
-            Swal.showLoading();
-        },
-        timer: 1500
-    }).then(() => {
-        window.location.href = `/reports/export-present?${params.toString()}`;
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Report Generated!',
-            confirmButtonColor: '#3b82f6'
-        });
-    });
-}
-
-// Example: Export for a specific date (useful for reports page)
-function exportPresentStudentsForDate(date, grade = null) {
-    const params = new URLSearchParams({ date: date });
-    
-    if (grade) {
-        params.append('grade_filter', grade);
-    }
-    
-    window.location.href = `/reports/export-present?${params.toString()}`;
-}
-document.getElementById('exportPresentStudentsBtn').addEventListener('click', function() {
-    exportPresentStudentsPDF();
-    
-    // Close the modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
-    if (modal) {
-        modal.hide();
-    }
-});
-function exportPresentStudentsPDF() {
-    // Get the selected date (can be from a date picker or use current date)
-    const selectedDate = document.getElementById('startDate').value; // or any date input
-    const gradeFilter = document.getElementById('gradeFilter').value;
-    
-    // Build URL with parameters
-    const params = new URLSearchParams({
-        date: selectedDate,
-    });
-    
-    // Only add grade filter if a specific grade is selected
-    if (gradeFilter) {
-        params.append('grade_filter', gradeFilter);
-    }
-    
-    // Show loading notification
-    Swal.fire({
-        title: 'Generating Present Students Report...',
-        html: 'Preparing your PDF report',
-        timerProgressBar: true,
-        didOpen: () => {
-            Swal.showLoading();
-        },
-        timer: 1500
-    }).then(() => {
-        // Trigger download
-        window.location.href = `/reports/export-present?${params.toString()}`;
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Report Generated!',
-            text: 'Your Present Students PDF is ready for download',
-            confirmButtonColor: '#3b82f6'
-        });
-    });
-}
 </script>
 @endsection

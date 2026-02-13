@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StudentsController;
 use App\Http\Controllers\ReportsController;
 use Illuminate\Support\Facades\Route;
@@ -114,3 +115,9 @@ Route::middleware(['auth'])->prefix('api')->group(function () {
     Route::post('/reports/realtime', [ReportsController::class, 'getRealTimeData'])
          ->name('api.reports.realtime');
 });
+
+// In routes/web.php
+Route::get('/reports/export-present', [ReportsController::class, 'exportPresentStudents'])->name('reports.export-present');
+Route::get('/reports/realtime-data', [ReportsController::class, 'realtimeData'])->name('reports.realtime');
+Route::get('/api/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
+Route::get('/api/attendance/today', [AttendanceController::class, 'todayCheckIns'])->name('attendance.today');

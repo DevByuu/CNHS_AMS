@@ -115,16 +115,17 @@
         <div class="col-lg-8">
             <div class="activity-card">
                 <div class="activity-header">
-                    <h5><i class="bi bi-clock-history me-2"></i>Recent Check-ins</h5>
-                    <button class="btn btn-sm btn-outline-secondary" id="clearHistory">
-                        <i class="bi bi-trash"></i> Clear
+                    <h5><i class="bi bi-clock-history me-2"></i>Today's Check-ins ({{ $presentToday ?? 0 }})</h5>
+                    <button class="btn btn-sm btn-outline-primary" id="refreshList">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
                     </button>
                 </div>
                 <div class="activity-body" id="activityList">
-                    <!-- Activities will be inserted here dynamically -->
-                    <div class="empty-activity">
-                        <i class="bi bi-inbox"></i>
-                        <p>No check-ins yet today</p>
+                    <!-- Activities will be loaded here -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -132,34 +133,32 @@
 
         <!-- Today's Summary -->
         <div class="col-lg-4">
-    <div class="summary-card">
-        <h5 class="summary-title">
-            <i class="bi bi-bar-chart-fill me-2"></i>
-            Attendance Rate
-        </h5>
-        <div class="attendance-rate">
-            <div class="rate-circle">
-                <svg class="progress-ring" width="150" height="150">
-                    <circle class="progress-ring-circle-bg" cx="75" cy="75" r="65"></circle>
-                    <circle class="progress-ring-circle" cx="75" cy="75" r="65" id="progressCircle"></circle>
-                </svg>
-                <div class="rate-percentage" id="attendancePercentage">
-                    {{ $totalStudents > 0 ? round(($presentToday / $totalStudents) * 100) : 0 }}%
+            <div class="summary-card">
+                <h5 class="summary-title">
+                    <i class="bi bi-bar-chart-fill me-2"></i>
+                    Attendance Rate
+                </h5>
+                <div class="attendance-rate">
+                    <div class="rate-circle">
+                        <svg class="progress-ring" width="150" height="150">
+                            <circle class="progress-ring-circle-bg" cx="75" cy="75" r="65"></circle>
+                            <circle class="progress-ring-circle" cx="75" cy="75" r="65" id="progressCircle"></circle>
+                        </svg>
+                        <div class="rate-percentage" id="attendancePercentage">0%</div>
+                    </div>
+                </div>
+                <div class="summary-details mt-4">
+                    <div class="summary-item">
+                        <span class="summary-dot bg-success"></span>
+                        <span>Present: <strong id="summaryPresent">{{ $presentToday }}</strong></span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-dot bg-danger"></span>
+                        <span>Absent: <strong id="summaryAbsent">{{ $absentToday }}</strong></span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="summary-details mt-4">
-            <div class="summary-item">
-                <span class="summary-dot bg-success"></span>
-                <span>Present: <strong id="summaryPresent">{{ $presentToday }}</strong></span>
-            </div>
-            <div class="summary-item">
-                <span class="summary-dot bg-danger"></span>
-                <span>Absent: <strong id="summaryAbsent">{{ $absentToday }}</strong></span>
-            </div>
-        </div>
-    </div>
-</div>
     </div>
 </div>
 
@@ -486,17 +485,21 @@
     }
 
     .activity-body::-webkit-scrollbar {
-        width: 6px;
+        width: 8px;
     }
 
     .activity-body::-webkit-scrollbar-track {
         background: #f3f4f6;
-        border-radius: 3px;
+        border-radius: 4px;
     }
 
     .activity-body::-webkit-scrollbar-thumb {
         background: #d1d5db;
-        border-radius: 3px;
+        border-radius: 4px;
+    }
+
+    .activity-body::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
     }
 
     .activity-item {
@@ -509,6 +512,21 @@
         gap: 1rem;
         animation: slideIn 0.3s ease;
         border-left: 4px solid #10b981;
+        transition: all 0.2s ease;
+    }
+
+    .activity-item:hover {
+        background: #f3f4f6;
+        transform: translateX(4px);
+    }
+
+    .activity-item.new-checkin {
+        animation: newCheckinHighlight 2s ease;
+    }
+
+    @keyframes newCheckinHighlight {
+        0% { background: #d1fae5; }
+        100% { background: #f9fafb; }
     }
 
     @keyframes slideIn {
@@ -681,6 +699,7 @@
     let soundEnabled = true;
     let rfidBuffer = '';
     let scanTimeout = null;
+    let lastFetchedCount = 0;
 
     // Update time
     function updateTime() {
@@ -695,6 +714,76 @@
     updateTime();
     setInterval(updateTime, 1000);
 
+    // Fetch today's check-ins from database
+    async function fetchTodayCheckIns() {
+        try {
+            const response = await fetch('/api/attendance/today', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch check-ins');
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                displayCheckIns(data.checkIns);
+                updateStats(data.stats);
+                
+                // Update header count
+                document.querySelector('.activity-header h5').innerHTML = 
+                    `<i class="bi bi-clock-history me-2"></i>Today's Check-ins (${data.checkIns.length})`;
+            }
+
+        } catch (error) {
+            console.error('Error fetching check-ins:', error);
+        }
+    }
+
+    // Display check-ins in the list
+    function displayCheckIns(checkIns) {
+        const activityList = document.getElementById('activityList');
+        
+        if (checkIns.length === 0) {
+            activityList.innerHTML = `
+                <div class="empty-activity">
+                    <i class="bi bi-inbox"></i>
+                    <p>No check-ins yet today</p>
+                </div>
+            `;
+            return;
+        }
+
+        activityList.innerHTML = '';
+        
+        checkIns.forEach(checkIn => {
+            const initials = checkIn.student_name.split(' ').map(n => n[0]).join('').substring(0, 2);
+            
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <div class="activity-avatar">${initials}</div>
+                <div class="activity-info">
+                    <div class="activity-name">${checkIn.student_name}</div>
+                    <div class="activity-details">${checkIn.grade} • LRN: ${checkIn.lrn}</div>
+                </div>
+                <div class="activity-time">${checkIn.time_in}</div>
+            `;
+            
+            activityList.appendChild(item);
+        });
+
+        // Update last check-in time
+        if (checkIns.length > 0) {
+            document.getElementById('lastCheckIn').textContent = checkIns[0].time_in;
+        }
+    }
+
     // Toggle sound
     document.getElementById('toggleSound').addEventListener('click', function() {
         soundEnabled = !soundEnabled;
@@ -708,6 +797,22 @@
             icon.className = 'bi bi-volume-mute';
             text.textContent = 'Sound OFF';
         }
+    });
+
+    // Manual refresh button
+    document.getElementById('refreshList').addEventListener('click', function() {
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Refreshing...';
+        
+        fetchTodayCheckIns();
+        
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }, 1000);
     });
 
     // Listen for RFID scans
@@ -759,8 +864,12 @@
         .then(data => {
             if (data.success) {
                 showCheckIn(data.student);
-                updateStats(data.stats);
                 playSuccessSound();
+                
+                // Refresh the list after a short delay
+                setTimeout(() => {
+                    fetchTodayCheckIns();
+                }, 500);
             } else {
                 showError(data.message || 'Student not found');
             }
@@ -771,7 +880,7 @@
         });
     }
 
-    // Show check-in
+    // Show check-in modal
     function showCheckIn(student) {
         const now = new Date();
         const timeString = now.toLocaleTimeString('en-US', { 
@@ -793,180 +902,93 @@
             modal.hide();
         }, 3000);
 
-        // Add to activity list
-        addActivityItem(student, timeString);
-
-        // Update last check-in time
-        document.getElementById('lastCheckIn').textContent = timeString;
-
         // Show toast
         showToast(`${student.name} checked in successfully!`);
     }
 
-    // Add activity item
-    function addActivityItem(student, time) {
-        const activityList = document.getElementById('activityList');
-        
-        // Remove empty state
-        const emptyState = activityList.querySelector('.empty-activity');
-        if (emptyState) {
-            emptyState.remove();
-        }
-
-        const initials = student.name.split(' ').map(n => n[0]).join('').substring(0, 2);
-        
-        const item = document.createElement('div');
-        item.className = 'activity-item';
-        item.innerHTML = `
-            <div class="activity-avatar">${initials}</div>
-            <div class="activity-info">
-                <div class="activity-name">${student.name}</div>
-                <div class="activity-details">${student.grade} • LRN: ${student.lrn}</div>
-            </div>
-            <div class="activity-time">${time}</div>
-        `;
-
-        // Insert at the beginning
-        activityList.insertBefore(item, activityList.firstChild);
-    }
-
-    // Initialize progress circle on page load
-document.addEventListener('DOMContentLoaded', function() {
-    const totalStudents = {{ $totalStudents }};
-    const presentToday = {{ $presentToday }};
-    const absentToday = {{ $absentToday }};
-    
-    // Initial update
-    updateStats({
-        total: totalStudents,
-        present: presentToday,
-        absent: absentToday
-    });
-});
-
-// Update stats with animation
-function updateStats(stats) {
-    // Animate present count
-    animateValue('presentCount', parseInt(document.getElementById('presentCount').textContent), stats.present, 500);
-    
-    // Animate absent count
-    animateValue('absentCount', parseInt(document.getElementById('absentCount').textContent), stats.absent, 500);
-    
-    // Update summary
-    animateValue('summaryPresent', parseInt(document.getElementById('summaryPresent').textContent || 0), stats.present, 500);
-    animateValue('summaryAbsent', parseInt(document.getElementById('summaryAbsent').textContent || 0), stats.absent, 500);
-
-    // Calculate and update attendance percentage with animation
-    const total = stats.total;
-    const present = stats.present;
-    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
-    
-    const currentPercentage = parseInt(document.getElementById('attendancePercentage').textContent);
-    animatePercentage(currentPercentage, percentage);
-    
-    // Update progress circle with smooth animation
-    updateProgressCircle(percentage);
-}
-
-// Animate number changes
-function animateValue(elementId, start, end, duration) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    
-    const range = end - start;
-    const increment = range / (duration / 16); // 60fps
-    let current = start;
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        element.textContent = Math.round(current);
-    }, 16);
-}
-
-// Animate percentage with smooth transition
-function animatePercentage(start, end) {
-    const element = document.getElementById('attendancePercentage');
-    if (!element) return;
-    
-    const duration = 1000;
-    const range = end - start;
-    const increment = range / (duration / 16);
-    let current = start;
-    
-    const timer = setInterval(() => {
-        current += increment;
-        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
-            current = end;
-            clearInterval(timer);
-        }
-        element.textContent = Math.round(current) + '%';
-    }, 16);
-}
-
-// Update progress circle with animation
-function updateProgressCircle(percentage) {
-    const circle = document.getElementById('progressCircle');
-    if (!circle) return;
-    
-    const radius = 65;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percentage / 100) * circumference;
-    
-    // Set initial values if not set
-    if (!circle.style.strokeDasharray) {
-        circle.style.strokeDasharray = circumference;
-        circle.style.strokeDashoffset = circumference;
-    }
-    
-    // Animate to new value
-    circle.style.transition = 'stroke-dashoffset 1s ease-in-out';
-    circle.style.strokeDashoffset = offset;
-    
-    // Change color based on percentage
-    if (percentage >= 80) {
-        circle.style.stroke = '#10b981'; // Green
-    } else if (percentage >= 50) {
-        circle.style.stroke = '#f59e0b'; // Orange
-    } else {
-        circle.style.stroke = '#ef4444'; // Red
-    }
-}
-
-// Optional: Auto-refresh stats every 30 seconds
-setInterval(function() {
-    fetch('/api/attendance/stats')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateStats(data.stats);
-            }
-        })
-        .catch(error => console.error('Error fetching stats:', error));
-}, 30000); // Refresh every 30 seconds
-
-    // Update stats
+    // Update stats with animation
     function updateStats(stats) {
-        document.getElementById('presentCount').textContent = stats.present;
-        document.getElementById('absentCount').textContent = stats.absent;
-        document.getElementById('summaryPresent').textContent = stats.present;
-        document.getElementById('summaryAbsent').textContent = stats.absent;
+        // Animate present count
+        animateValue('presentCount', parseInt(document.getElementById('presentCount').textContent), stats.present, 500);
+        
+        // Animate absent count
+        animateValue('absentCount', parseInt(document.getElementById('absentCount').textContent), stats.absent, 500);
+        
+        // Update summary
+        animateValue('summaryPresent', parseInt(document.getElementById('summaryPresent').textContent || 0), stats.present, 500);
+        animateValue('summaryAbsent', parseInt(document.getElementById('summaryAbsent').textContent || 0), stats.absent, 500);
 
-        // Update attendance percentage
+        // Calculate and update attendance percentage
         const total = stats.total;
         const present = stats.present;
         const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
         
-        document.getElementById('attendancePercentage').textContent = percentage + '%';
+        const currentPercentage = parseInt(document.getElementById('attendancePercentage').textContent);
+        animatePercentage(currentPercentage, percentage);
         
         // Update progress circle
+        updateProgressCircle(percentage);
+    }
+
+    // Animate number changes
+    function animateValue(elementId, start, end, duration) {
+        const element = document.getElementById(elementId);
+        if (!element) return;
+        
+        const range = end - start;
+        const increment = range / (duration / 16);
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                current = end;
+                clearInterval(timer);
+            }
+            element.textContent = Math.round(current);
+        }, 16);
+    }
+
+    // Animate percentage
+    function animatePercentage(start, end) {
+        const element = document.getElementById('attendancePercentage');
+        if (!element) return;
+        
+        const duration = 1000;
+        const range = end - start;
+        const increment = range / (duration / 16);
+        let current = start;
+        
+        const timer = setInterval(() => {
+            current += increment;
+            if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                current = end;
+                clearInterval(timer);
+            }
+            element.textContent = Math.round(current) + '%';
+        }, 16);
+    }
+
+    // Update progress circle
+    function updateProgressCircle(percentage) {
         const circle = document.getElementById('progressCircle');
-        const circumference = 2 * Math.PI * 65;
+        if (!circle) return;
+        
+        const radius = 65;
+        const circumference = 2 * Math.PI * radius;
         const offset = circumference - (percentage / 100) * circumference;
+        
+        circle.style.strokeDasharray = circumference;
         circle.style.strokeDashoffset = offset;
+        
+        // Change color based on percentage
+        if (percentage >= 80) {
+            circle.style.stroke = '#10b981';
+        } else if (percentage >= 50) {
+            circle.style.stroke = '#f59e0b';
+        } else {
+            circle.style.stroke = '#ef4444';
+        }
     }
 
     // Show toast
@@ -992,7 +1014,6 @@ setInterval(function() {
 
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // First beep
         const oscillator1 = audioContext.createOscillator();
         const gainNode1 = audioContext.createGain();
         oscillator1.connect(gainNode1);
@@ -1004,7 +1025,6 @@ setInterval(function() {
         oscillator1.start(audioContext.currentTime);
         oscillator1.stop(audioContext.currentTime + 0.1);
 
-        // Second beep
         const oscillator2 = audioContext.createOscillator();
         const gainNode2 = audioContext.createGain();
         oscillator2.connect(gainNode2);
@@ -1017,28 +1037,24 @@ setInterval(function() {
         oscillator2.stop(audioContext.currentTime + 0.25);
     }
 
-    // Clear history
-    document.getElementById('clearHistory').addEventListener('click', function() {
-        Swal.fire({
-            title: 'Clear History?',
-            text: 'This will only clear the display, not the attendance records.',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3b82f6',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Yes, clear it',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const activityList = document.getElementById('activityList');
-                activityList.innerHTML = `
-                    <div class="empty-activity">
-                        <i class="bi bi-inbox"></i>
-                        <p>No check-ins yet today</p>
-                    </div>
-                `;
-            }
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initial stats update
+        const totalStudents = {{ $totalStudents }};
+        const presentToday = {{ $presentToday }};
+        const absentToday = {{ $absentToday }};
+        
+        updateStats({
+            total: totalStudents,
+            present: presentToday,
+            absent: absentToday
         });
+
+        // Load today's check-ins
+        fetchTodayCheckIns();
+
+        // Auto-refresh every 10 seconds
+        setInterval(fetchTodayCheckIns, 10000);
     });
 </script>
 @endsection
