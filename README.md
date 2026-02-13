@@ -3,7 +3,7 @@
 # 🎓 CNHS Smart Attendance Management System
 
 <p align="center">
-  <img src="public/img/logo.png" alt="CNHS Logo" width="150"/>
+  <img src="https://www.facebook.com/photo.php?fbid=547222730537022&set=a.547222703870358&type=3&mibextid=rS40aB7S9Ucbxw6v" alt="CNHS Logo" width="150"/>
 </p>
 
 <p align="center">
