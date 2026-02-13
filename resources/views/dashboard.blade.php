@@ -99,55 +99,217 @@
 <!-- --- CSS --- -->
 <style>
     /* Fade In Animation */
-    .dashboard-container { animation: fadeIn 0.5s ease; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .dashboard-container {
+        animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 
     /* Welcome Section */
     .welcome-section {
         background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
         box-shadow: 0 10px 30px rgba(30, 64, 175, 0.3);
-        padding:2rem; border-radius:16px; color:white;
+        padding: 2rem;
+        border-radius: 16px;
+        color: white;
     }
 
     /* Stat Cards */
-    .stat-card { background:white; border-radius:16px; padding:1.75rem; display:flex; align-items:flex-start; gap:1.25rem; box-shadow:0 4px 20px rgba(0,0,0,0.08); transition:all 0.3s ease; border:1px solid rgba(0,0,0,0.05); position:relative; overflow:hidden; }
-    .stat-card::before { content:''; position:absolute; top:0; left:0; width:4px; height:100%; transition:width 0.3s ease; }
-    .stat-card:hover { transform:translateY(-4px); box-shadow:0 8px 30px rgba(0,0,0,0.12); }
-    .stat-card:hover::before { width:100%; opacity:0.05; }
-    .stat-card-blue::before { background:#3b82f6; }
-    .stat-card-green::before { background:#10b981; }
-    .stat-card-red::before { background:#ef4444; }
-    .stat-card-orange::before { background:#f59e0b; }
-    .stat-icon { width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.75rem;flex-shrink:0; }
-    .stat-card-blue .stat-icon { background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%); color:white; }
-    .stat-card-green .stat-icon { background:linear-gradient(135deg,#10b981 0%,#059669 100%); color:white; }
-    .stat-card-red .stat-icon { background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%); color:white; }
-    .stat-card-orange .stat-icon { background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%); color:white; }
-    .stat-details { flex:1; }
-    .stat-label { color:#6b7280; font-size:0.875rem; font-weight:500; margin-bottom:0.5rem; }
-    .stat-value { font-size:2rem; font-weight:700; color:#111827; margin-bottom:0.5rem; }
-    .stat-change { font-size:0.8125rem; font-weight:500; display:flex; align-items:center; gap:0.25rem; }
-    .stat-change.positive { color:#10b981; }
-    .stat-change.negative { color:#ef4444; }
+    .stat-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.75rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1.25rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-card:hover::before {
+        width: 100%;
+        opacity: 0.05;
+    }
+
+    .stat-card-blue::before {
+        background: #3b82f6;
+    }
+
+    .stat-card-green::before {
+        background: #10b981;
+    }
+
+    .stat-card-red::before {
+        background: #ef4444;
+    }
+
+    .stat-card-orange::before {
+        background: #f59e0b;
+    }
+
+    .stat-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        flex-shrink: 0;
+    }
+
+    .stat-card-blue .stat-icon {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+    }
+
+    .stat-card-green .stat-icon {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+    }
+
+    .stat-card-red .stat-icon {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+    }
+
+    .stat-card-orange .stat-icon {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+    }
+
+    .stat-details {
+        flex: 1;
+    }
+
+    .stat-label {
+        color: #6b7280;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-change {
+        font-size: 0.8125rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .stat-change.positive {
+        color: #10b981;
+    }
+
+    .stat-change.negative {
+        color: #ef4444;
+    }
 
     /* Charts */
-    .chart-card { background:white; border-radius:16px; padding:1.5rem; box-shadow:0 4px 20px rgba(0,0,0,0.08); height:100%; }
-    .chart-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:2px solid #f3f4f6; }
-    .chart-title { font-size:1.125rem; font-weight:700; color:#111827; display:flex; align-items:center; }
-    .legend-item { display:flex; align-items:center; gap:0.5rem; }
-    .legend-dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
+    .chart-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        height: 100%;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
+    }
+
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #111827;
+        display: flex;
+        align-items: center;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .legend-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
 
     /* Loading State */
-    .updating { position:relative; opacity:0.6; pointer-events:none; }
-    .updating::after {
-        content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-        width:30px; height:30px; border:3px solid #f3f4f6; border-top-color:#3b82f6;
-        border-radius:50%; animation:spin 0.8s linear infinite;
+    .updating {
+        position: relative;
+        opacity: 0.6;
+        pointer-events: none;
     }
-    @keyframes spin { to { transform:translate(-50%,-50%) rotate(360deg); } }
+
+    .updating::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f4f6;
+        border-top-color: #3b82f6;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: translate(-50%, -50%) rotate(360deg);
+        }
+    }
 
     @media (max-width:768px) {
-        .stat-value { font-size:1.5rem; }
+        .stat-value {
+            font-size: 1.5rem;
+        }
     }
 </style>
 
@@ -157,7 +319,11 @@
     // Update Time
     function updateTime() {
         const now = new Date();
-        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
     }
     setInterval(updateTime, 1000);
     updateTime();
@@ -169,7 +335,7 @@
     // Create Attendance Trend Chart
     function createTrendChart(labels, presentData, absentData) {
         const trendCtx = document.getElementById('attendanceTrendChart').getContext('2d');
-        
+
         if (trendChart) {
             trendChart.destroy();
         }
@@ -178,24 +344,23 @@
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [
-                    { 
-                        label: 'Present', 
-                        data: presentData, 
-                        borderColor: '#10b981', 
-                        backgroundColor: 'rgba(16,185,129,0.1)', 
-                        tension: 0.4, 
+                datasets: [{
+                        label: 'Present',
+                        data: presentData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16,185,129,0.1)',
+                        tension: 0.4,
                         fill: true,
                         borderWidth: 3,
                         pointRadius: 4,
                         pointHoverRadius: 6
                     },
-                    { 
-                        label: 'Absent', 
-                        data: absentData, 
-                        borderColor: '#ef4444', 
-                        backgroundColor: 'rgba(239,68,68,0.1)', 
-                        tension: 0.4, 
+                    {
+                        label: 'Absent',
+                        data: absentData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239,68,68,0.1)',
+                        tension: 0.4,
                         fill: true,
                         borderWidth: 3,
                         pointRadius: 4,
@@ -235,7 +400,7 @@
     // Create Donut Chart
     function createDonutChart(present, absent, late) {
         const donutCtx = document.getElementById('attendanceDonutChart').getContext('2d');
-        
+
         if (donutChart) {
             donutChart.destroy();
         }
@@ -346,7 +511,7 @@
         const timer = setInterval(() => {
             step++;
             current += increment;
-            
+
             if (step >= steps) {
                 current = endValue;
                 clearInterval(timer);
@@ -360,12 +525,12 @@
     document.getElementById('refreshDashboard')?.addEventListener('click', function() {
         const btn = this;
         const originalHTML = btn.innerHTML;
-        
+
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Refreshing...';
-        
+
         fetchDashboardData();
-        
+
         setTimeout(() => {
             btn.disabled = false;
             btn.innerHTML = originalHTML;

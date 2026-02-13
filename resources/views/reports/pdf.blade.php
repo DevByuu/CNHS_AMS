@@ -341,14 +341,14 @@
         <div class="signature-container">
             <div class="signature-box">
                 <div class="signature-line">
-                    <div class="signature-name">_________________________</div>
+                    <div class="signature-name">NIKKERSON J. DOYDORA</div>
                     <div class="signature-title">Prepared By</div>
                     <div class="signature-title">Attendance Officer</div>
                 </div>
             </div>
             <div class="signature-box">
                 <div class="signature-line">
-                    <div class="signature-name">_________________________</div>
+                    <div class="signature-name">NIKKERSON J. DOYDORA</div>
                     <div class="signature-title">Noted By</div>
                     <div class="signature-title">School Principal</div>
                 </div>
@@ -358,7 +358,7 @@
 
     <!-- Footer -->
     <div class="footer">
-        Generated on {{ $generated_date }}
+        Generated on {{ $report_date }}
     </div>
 </body>
 </html>

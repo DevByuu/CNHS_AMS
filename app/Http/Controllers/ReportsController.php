@@ -548,6 +548,13 @@ public function exportPresentStudents(Request $request)
 
     $reportDate = Carbon::parse($date);
 
+    // ✅ FIX: Extract just the number from "Grade 11" to match database format
+    $gradeNumber = null;
+    if ($gradeFilter) {
+        // If gradeFilter is "Grade 11", extract "11"
+        $gradeNumber = str_replace('Grade ', '', $gradeFilter);
+    }
+
     // Base query for present students
     $presentQuery = DB::table('attendances')
         ->join('students', 'attendances.student_id', '=', 'students.id')
@@ -557,8 +564,9 @@ public function exportPresentStudents(Request $request)
         ->orderBy('students.grade')
         ->orderBy('students.name');
 
-    if ($gradeFilter) {
-        $presentQuery->where('students.grade', $gradeFilter);
+    // ✅ FIX: Use the extracted number for filtering
+    if ($gradeNumber) {
+        $presentQuery->where('students.grade', $gradeNumber);
     }
 
     $presentStudents = $presentQuery->get();
@@ -566,10 +574,10 @@ public function exportPresentStudents(Request $request)
     // Total present
     $totalPresent = $presentStudents->count();
 
-    // Total enrolled
+    // Total enrolled - ✅ FIX: Use grade number here too
     $enrolledQuery = DB::table('students');
-    if ($gradeFilter) {
-        $enrolledQuery->where('grade', $gradeFilter);
+    if ($gradeNumber) {
+        $enrolledQuery->where('grade', $gradeNumber);
     }
     $totalEnrolled = $enrolledQuery->count();
 
@@ -578,48 +586,44 @@ public function exportPresentStudents(Request $request)
         ? round(($totalPresent / $totalEnrolled) * 100, 2)
         : 0;
 
-    // ✅ FIXED: Fetch grade breakdown with correct grade format
+    // Grade breakdown
     $gradeBreakdown = [];
     
-    // Define grades - adjust this based on how grades are stored in your database
-    // If stored as "11", "12", etc., use this:
-    $gradeNumbers = $gradeFilter 
-        ? [str_replace('Grade ', '', $gradeFilter)] 
+    // ✅ FIX: Use grade numbers for querying, but display "Grade X" format
+    $gradeNumbers = $gradeNumber 
+        ? [$gradeNumber] 
         : ['7', '8', '9', '10', '11', '12'];
     
-    // If stored as "Grade 7", "Grade 8", etc., use this instead:
-    $gradeNumbers = $gradeFilter 
-        ? [$gradeFilter] 
-        : ['Grade 7','Grade 8','Grade 9','Grade 10','Grade 11','Grade 12'];
-    
     foreach ($gradeNumbers as $gradeNum) {
-        // Query using the actual format in database
         $gradePresent = DB::table('attendances')
             ->join('students', 'attendances.student_id', '=', 'students.id')
             ->where('attendances.date', $reportDate->format('Y-m-d'))
             ->where('attendances.status', 'present')
-            ->where('students.grade', $gradeNum) // ✅ Use correct format
+            ->where('students.grade', $gradeNum) // ✅ Query with number
             ->count();
 
         $gradeTotal = DB::table('students')
-            ->where('grade', $gradeNum) // ✅ Use correct format
+            ->where('grade', $gradeNum) // ✅ Query with number
             ->count();
 
         $gradeRate = $gradeTotal > 0 ? round(($gradePresent / $gradeTotal) * 100, 2) : 0;
 
         $gradeBreakdown[] = [
-            'grade' => 'Grade ' . $gradeNum, // ✅ Format for display
+            'grade' => 'Grade ' . $gradeNum, // ✅ Display with "Grade" prefix
             'present' => $gradePresent,
             'total' => $gradeTotal,
             'rate' => $gradeRate
         ];
     }
 
-    // ✅ DEBUG: Add this temporarily to see what's happening
-    \Log::info('Grade Breakdown Debug', [
+    // ✅ ADD DEBUG: Log to see what's happening
+    \Log::info('Export Present Students Debug', [
         'date' => $reportDate->format('Y-m-d'),
-        'gradeBreakdown' => $gradeBreakdown,
-        'presentStudents' => $presentStudents->toArray()
+        'gradeFilter' => $gradeFilter,
+        'gradeNumber' => $gradeNumber,
+        'totalPresent' => $totalPresent,
+        'totalEnrolled' => $totalEnrolled,
+        'presentStudentsCount' => $presentStudents->count()
     ]);
 
     $pdfData = [
@@ -632,7 +636,7 @@ public function exportPresentStudents(Request $request)
             return [
                 'lrn' => $student->lrn,
                 'name' => $student->name,
-                'grade' => $student->grade,
+                'grade' => $student->grade, // ✅ This will show "11" from database
                 'time_in' => $student->time_in ? Carbon::parse($student->time_in)->format('h:i A') : '-',
             ];
         })->toArray(),
@@ -651,14 +655,15 @@ public function exportPresentStudents(Request $request)
     $pdf->setPaper('letter', 'portrait');
 
     $filename = 'CNHS_PRESENT-' . $reportDate->format('Y-m-d');
+
     if ($gradeFilter) {
         $filename .= '-' . str_replace(' ', '-', strtolower($gradeFilter));
     }
+
     $filename .= '-' . Str::random(6) . '.pdf';
 
     return $pdf->download($filename);
 }
-
 
     /**
      * Get base64 encoded logo

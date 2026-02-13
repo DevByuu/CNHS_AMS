@@ -38,9 +38,9 @@
             <div class="col-lg-3">
                 <label class="filter-label">Report Type</label>
                 <select class="form-select filter-select" id="reportType">
-                    <option value="daily">Daily Report</option>
+                    <option value="daily" selected>Daily Report</option>
                     <option value="weekly">Weekly Report</option>
-                    <option value="monthly" selected>Monthly Report</option>
+                    <option value="monthly">Monthly Report</option>
                     <option value="custom">Custom Range</option>
                 </select>
             </div>
@@ -48,20 +48,16 @@
                 <label class="filter-label">Select Date</label>
                 <input type="date" class="form-control filter-select" id="startDate" value="{{ date('Y-m-d') }}">
             </div>
-            {{-- <div class="col-lg-3">
-                <label class="filter-label">End Date</label>
-                <input type="date" class="form-control filter-select" id="endDate" value="{{ date('Y-m-d') }}">
-            </div> --}}
             <div class="col-lg-3">
                 <label class="filter-label">Grade Level</label>
                 <select class="form-select filter-select" id="gradeFilter" name="grade_filter">
                     <option value="">All Grades</option>
-                    <option value="Grade 7">Grade 7</option>
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 10">Grade 10</option>
-                    <option value="Grade 11">Grade 11</option>
-                    <option value="Grade 12">Grade 12</option>
+                    <option value="7">Grade 7</option>
+                    <option value="8">Grade 8</option>
+                    <option value="9">Grade 9</option>
+                    <option value="10">Grade 10</option>
+                    <option value="11">Grade 11</option>
+                    <option value="12">Grade 12</option>
                 </select>
             </div>
             <div class="col-12">
@@ -99,7 +95,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Total Days</div>
-                    <div class="stat-number" id="totalDays">{{ $totalDays ?? 20 }}</div>
+                    <div class="stat-number" id="totalDays">0</div>
                     <div class="stat-trend">
                         <i class="bi bi-calendar3"></i>
                         This period
@@ -114,10 +110,10 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Average Attendance</div>
-                    <div class="stat-number" id="avgAttendance">{{ $avgAttendance ?? '87.5' }}%</div>
+                    <div class="stat-number" id="avgAttendance">0%</div>
                     <div class="stat-trend positive">
                         <i class="bi bi-arrow-up"></i>
-                        +2.3% from last period
+                        <span id="attendanceTrend">--</span>
                     </div>
                 </div>
             </div>
@@ -129,10 +125,10 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Total Absences</div>
-                    <div class="stat-number" id="totalAbsences">{{ $totalAbsences ?? 245 }}</div>
+                    <div class="stat-number" id="totalAbsences">0</div>
                     <div class="stat-trend negative">
                         <i class="bi bi-arrow-down"></i>
-                        12.5% of total
+                        <span id="absenceRate">--</span>
                     </div>
                 </div>
             </div>
@@ -144,7 +140,7 @@
                 </div>
                 <div class="stat-content">
                     <div class="stat-label">Perfect Attendance</div>
-                    <div class="stat-number" id="perfectAttendance">{{ $perfectAttendance ?? 45 }}</div>
+                    <div class="stat-number" id="perfectAttendance">0</div>
                     <div class="stat-trend">
                         <i class="bi bi-people"></i>
                         Students
@@ -193,7 +189,7 @@
                             <i class="bi bi-pie-chart-fill me-2"></i>
                             By Grade Level
                         </h5>
-                        <p class="chart-subtitle">Attendance distribution</p>
+                        <p class="chart-subtitle">Student distribution</p>
                     </div>
                 </div>
                 <div class="chart-body text-center">
@@ -217,17 +213,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-    <div class="export-options">
-        <!-- NEW: Present Students PDF option -->
-        <button class="export-option-btn" id="exportPresentStudentsBtn">
-            <i class="bi bi-file-pdf"></i>
-            <div>
-                <span>Present Students Report (PDF)</span>
-                <small>List of present students for selected date</small>
+                <div class="export-options">
+                    <button class="export-option-btn" id="exportPresentStudentsBtn">
+                        <i class="bi bi-file-pdf"></i>
+                        <div>
+                            <span>Present Students Report (PDF)</span>
+                            <small>List of present students for selected date</small>
+                        </div>
+                    </button>
+                </div>
             </div>
-        </button>
-    </div>
-</div>
         </div>
     </div>
 </div>
@@ -509,351 +504,6 @@
         margin: 0.25rem 0 0 0;
     }
 
-    /* Custom Tabs */
-    .custom-tabs {
-        border: none;
-        background: white;
-        padding: 0.5rem;
-        border-radius: 12px 12px 0 0;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .custom-tabs .nav-link {
-        border: none;
-        color: #6b7280;
-        font-weight: 600;
-        padding: 0.875rem 1.5rem;
-        border-radius: 8px;
-        transition: all 0.3s ease;
-    }
-
-    .custom-tabs .nav-link:hover {
-        background: #f3f4f6;
-        color: #3b82f6;
-    }
-
-    .custom-tabs .nav-link.active {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-    }
-
-    .custom-tab-content {
-        background: white;
-        padding: 2rem;
-        border-radius: 0 0 12px 12px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    /* Report Table */
-    .report-table {
-        margin: 0;
-    }
-
-    .report-table thead {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    }
-
-    .report-table th {
-        font-weight: 700;
-        color: #374151;
-        border-bottom: 2px solid #e5e7eb;
-        padding: 1rem;
-        font-size: 0.875rem;
-        white-space: nowrap;
-    }
-
-    .report-table td {
-        padding: 1rem;
-        vertical-align: middle;
-        border-bottom: 1px solid #f3f4f6;
-    }
-
-    .report-table tbody tr:hover {
-        background: #f9fafb;
-    }
-
-    .table-footer {
-        background: #f9fafb;
-        font-weight: 600;
-    }
-
-    .grade-badge {
-        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-        color: white;
-        padding: 0.375rem 0.875rem;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.8125rem;
-        display: inline-block;
-    }
-
-    .grade-badge-sm {
-        background: #f3f4f6;
-        color: #6b7280;
-        padding: 0.25rem 0.625rem;
-        border-radius: 4px;
-        font-weight: 600;
-        font-size: 0.75rem;
-        display: inline-block;
-    }
-
-    .badge-success {
-        background: rgba(16, 185, 129, 0.1);
-        color: #059669;
-        padding: 0.375rem 0.75rem;
-        border-radius: 6px;
-        font-weight: 600;
-    }
-
-    .badge-danger {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
-        padding: 0.375rem 0.75rem;
-        border-radius: 6px;
-        font-weight: 600;
-    }
-
-    .badge-warning {
-        background: rgba(245, 158, 11, 0.1);
-        color: #d97706;
-        padding: 0.375rem 0.75rem;
-        border-radius: 6px;
-        font-weight: 600;
-    }
-
-    .progress-bar-wrapper {
-        background: #f3f4f6;
-        border-radius: 50px;
-        height: 28px;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .progress-bar-fill {
-        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 600;
-        font-size: 0.8125rem;
-        transition: width 0.3s ease;
-    }
-
-    .progress-bar-fill.bg-primary {
-        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-    }
-
-    .status-badge {
-        padding: 0.375rem 0.875rem;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 0.8125rem;
-        display: inline-block;
-    }
-
-    .status-good {
-        background: rgba(16, 185, 129, 0.1);
-        color: #059669;
-    }
-
-    .status-average {
-        background: rgba(245, 158, 11, 0.1);
-        color: #d97706;
-    }
-
-    .status-poor {
-        background: rgba(239, 68, 68, 0.1);
-        color: #dc2626;
-    }
-
-    /* Student Cell */
-    .student-cell {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    .student-avatar-sm {
-        width: 32px;
-        height: 32px;
-        border-radius: 6px;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 0.75rem;
-    }
-
-    .student-avatar-lg {
-        width: 56px;
-        height: 56px;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.25rem;
-    }
-
-    .status-dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        display: inline-block;
-        margin-right: 0.5rem;
-    }
-
-    .status-present { background: #10b981; }
-    .status-absent { background: #ef4444; }
-    .status-late { background: #f59e0b; }
-
-    /* Search Box */
-    .search-box-report {
-        position: relative;
-    }
-
-    .search-box-report i {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-    }
-
-    .search-box-report .form-control {
-        padding-left: 2.75rem;
-        border: 2px solid #e5e7eb;
-        border-radius: 8px;
-    }
-
-    /* Student Report Cards */
-    .student-reports-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .student-report-card {
-        background: white;
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .student-report-card:hover {
-        border-color: #3b82f6;
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .student-report-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #f3f4f6;
-    }
-
-    .student-report-stats {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .mini-stat {
-        text-align: center;
-    }
-
-    .mini-stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-    }
-
-    .mini-stat-label {
-        font-size: 0.75rem;
-        color: #6b7280;
-        margin-top: 0.25rem;
-    }
-
-    .student-report-progress {
-        margin-bottom: 1rem;
-    }
-
-    .progress-label {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-    }
-
-    /* Insight Cards */
-    .insight-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        display: flex;
-        gap: 1.25rem;
-        border-left: 4px solid;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .insight-success { border-color: #10b981; }
-    .insight-warning { border-color: #f59e0b; }
-    .insight-info { border-color: #3b82f6; }
-    .insight-primary { border-color: #8b5cf6; }
-
-    .insight-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        flex-shrink: 0;
-    }
-
-    .insight-success .insight-icon {
-        background: rgba(16, 185, 129, 0.1);
-        color: #10b981;
-    }
-
-    .insight-warning .insight-icon {
-        background: rgba(245, 158, 11, 0.1);
-        color: #f59e0b;
-    }
-
-    .insight-info .insight-icon {
-        background: rgba(59, 130, 246, 0.1);
-        color: #3b82f6;
-    }
-
-    .insight-primary .insight-icon {
-        background: rgba(139, 92, 246, 0.1);
-        color: #8b5cf6;
-    }
-
-    .insight-content h6 {
-        font-weight: 700;
-        color: #111827;
-        margin-bottom: 0.5rem;
-    }
-
-    .insight-content p {
-        color: #6b7280;
-        margin-bottom: 1rem;
-        font-size: 0.9375rem;
-    }
-
     /* Export Modal */
     .export-modal .modal-content {
         border: none;
@@ -916,6 +566,7 @@
     // Trend Chart
     let currentChartType = 'line';
     let trendChart;
+    let gradeChart;
 
     function createTrendChart(type, labels, values) {
         const ctx = document.getElementById('trendChart').getContext('2d');
@@ -927,15 +578,17 @@
         trendChart = new Chart(ctx, {
             type: type,
             data: {
-                labels: labels || ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                labels: labels || [],
                 datasets: [{
                     label: 'Attendance Rate (%)',
-                    data: values || [85, 87, 89, 87.5],
+                    data: values || [],
                     borderColor: '#3b82f6',
                     backgroundColor: type === 'line' ? 'rgba(59, 130, 246, 0.1)' : '#3b82f6',
                     tension: 0.4,
                     fill: type === 'line',
-                    borderWidth: 3
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -948,7 +601,7 @@
                 },
                 scales: {
                     y: {
-                        beginAtZero: false,
+                        beginAtZero: true,
                         min: 0,
                         max: 100,
                         ticks: {
@@ -962,8 +615,50 @@
         });
     }
 
-    // Initialize charts with default data
+    function createGradeChart(labels, values) {
+        const ctx = document.getElementById('gradeChart').getContext('2d');
+        
+        if (gradeChart) {
+            gradeChart.destroy();
+        }
+
+        gradeChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels || ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
+                datasets: [{
+                    data: values || [0, 0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        '#3b82f6',
+                        '#10b981',
+                        '#f59e0b',
+                        '#8b5cf6',
+                        '#ef4444',
+                        '#06b6d4'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize charts
     createTrendChart('line');
+    createGradeChart();
 
     // Chart type switcher
     document.querySelectorAll('[data-chart]').forEach(btn => {
@@ -973,46 +668,10 @@
             const chartType = this.dataset.chart;
             currentChartType = chartType;
             
-            // Re-create chart with current data
             if (trendChart && trendChart.data) {
                 createTrendChart(chartType, trendChart.data.labels, trendChart.data.datasets[0].data);
             }
         });
-    });
-
-    // Grade Chart
-    const gradeCtx = document.getElementById('gradeChart').getContext('2d');
-    let gradeChart = new Chart(gradeCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'],
-            datasets: [{
-                data: [0, 0, 0, 0, 0, 0],
-                backgroundColor: [
-                    '#3b82f6',
-                    '#10b981',
-                    '#f59e0b',
-                    '#8b5cf6',
-                    '#ef4444',
-                    '#06b6d4'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            cutout: '60%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        usePointStyle: true
-                    }
-                }
-            }
-        }
     });
 
     // Real-time Data Fetch Function
@@ -1027,7 +686,7 @@
             
             if (reportType === 'weekly') {
                 const date = new Date(startDate);
-                date.setDate(date.getDate() + 7);
+                date.setDate(date.getDate() + 6);
                 endDate = date.toISOString().split('T')[0];
             } else if (reportType === 'monthly') {
                 const date = new Date(startDate);
@@ -1068,7 +727,6 @@
 
     // Update Dashboard with new data
     function updateDashboard(data) {
-        // Add updating class for animation
         const summaryCards = document.querySelectorAll('.summary-stat-card');
         summaryCards.forEach(card => card.classList.add('updating'));
 
@@ -1087,23 +745,27 @@
                 animateValue('perfectAttendance', data.perfectAttendance);
             }
 
-            // Update charts if data provided
+            // Update trends
+            if (data.totalStudents && data.totalAbsences) {
+                const absenceRate = ((data.totalAbsences / (data.totalStudents * data.totalDays)) * 100).toFixed(1);
+                document.getElementById('absenceRate').textContent = absenceRate + '% of total';
+            }
+
+            // Update charts
             if (data.trendData && data.trendData.labels && data.trendData.values) {
-                updateTrendChart(data.trendData);
+                createTrendChart(currentChartType, data.trendData.labels, data.trendData.values);
             }
 
-            if (data.gradeData && data.gradeData.values) {
-                updateGradeChart(data.gradeData);
+            if (data.gradeData && data.gradeData.labels && data.gradeData.values) {
+                createGradeChart(data.gradeData.labels, data.gradeData.values);
             }
 
-            // Remove updating class
             summaryCards.forEach(card => {
                 card.classList.remove('updating');
                 card.classList.add('data-updated');
                 setTimeout(() => card.classList.remove('data-updated'), 1000);
             });
 
-            // Show notification
             showUpdateNotification();
         }, 500);
     }
@@ -1131,21 +793,6 @@
 
             element.textContent = current.toFixed(decimals) + suffix;
         }, duration / steps);
-    }
-
-    // Update trend chart
-    function updateTrendChart(newData) {
-        if (trendChart && newData.labels && newData.values) {
-            createTrendChart(currentChartType, newData.labels, newData.values);
-        }
-    }
-
-    // Update grade chart
-    function updateGradeChart(newData) {
-        if (gradeChart && newData.values) {
-            gradeChart.data.datasets[0].data = newData.values;
-            gradeChart.update('active');
-        }
     }
 
     // Update last update time
@@ -1231,7 +878,6 @@
             }
         }, REFRESH_INTERVAL);
 
-        // Also update relative time every 5 seconds
         setInterval(updateRelativeTime, 5000);
     }
 
@@ -1290,41 +936,22 @@
 
     // Export Present Students PDF
     document.getElementById('exportPresentStudentsBtn').addEventListener('click', function() {
-        exportPresentStudentsPDF();
-        
-        // Close the modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
-        if (modal) {
-            modal.hide();
-        }
-    });
-
-    function exportPresentStudentsPDF() {
-        // Get the selected date and grade filter
         const selectedDate = document.getElementById('startDate').value;
         const gradeFilter = document.getElementById('gradeFilter').value;
         
-        // Build URL with parameters
-        const params = new URLSearchParams({
-            date: selectedDate,
-        });
+        const params = new URLSearchParams({ date: selectedDate });
         
-        // Only add grade filter if a specific grade is selected
         if (gradeFilter) {
-            params.append('grade_filter', gradeFilter);
+            params.append('grade_filter', 'Grade ' + gradeFilter);
         }
         
-        // Show loading notification
         Swal.fire({
             title: 'Generating Present Students Report...',
-            html: `Preparing PDF for ${selectedDate}${gradeFilter ? ' (' + gradeFilter + ')' : ' (All Grades)'}`,
+            html: `Preparing PDF for ${selectedDate}${gradeFilter ? ' (Grade ' + gradeFilter + ')' : ' (All Grades)'}`,
             timerProgressBar: true,
-            didOpen: () => {
-                Swal.showLoading();
-            },
+            didOpen: () => { Swal.showLoading(); },
             timer: 1500
         }).then(() => {
-            // Trigger download
             window.location.href = `/reports/export-present?${params.toString()}`;
             
             Swal.fire({
@@ -1335,24 +962,20 @@
                 timer: 2000
             });
         });
-    }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+        if (modal) modal.hide();
+    });
 
     // Generate Report with filters
     document.getElementById('generateReport').addEventListener('click', function() {
-        const reportType = document.getElementById('reportType').value;
-        const startDate = document.getElementById('startDate').value;
-        const grade = document.getElementById('gradeFilter').value;
-
         Swal.fire({
             title: 'Generating Report...',
             html: 'Please wait while we compile your data',
             timerProgressBar: true,
-            didOpen: () => {
-                Swal.showLoading();
-            },
+            didOpen: () => { Swal.showLoading(); },
             timer: 1000
         }).then(() => {
-            // Fetch new data based on filters
             fetchLatestData();
             
             Swal.fire({
@@ -1368,13 +991,11 @@
     // Reset Filters
     document.getElementById('resetFilters').addEventListener('click', function() {
         const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         
-        document.getElementById('reportType').value = 'monthly';
-        document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+        document.getElementById('reportType').value = 'daily';
+        document.getElementById('startDate').value = today.toISOString().split('T')[0];
         document.getElementById('gradeFilter').value = '';
         
-        // Refresh data
         fetchLatestData();
     });
 
@@ -1387,12 +1008,14 @@
         if (value === 'daily') {
             startDateInput.value = today.toISOString().split('T')[0];
         } else if (value === 'weekly') {
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const weekAgo = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
             startDateInput.value = weekAgo.toISOString().split('T')[0];
         } else if (value === 'monthly') {
             const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
             startDateInput.value = firstDay.toISOString().split('T')[0];
         }
+        
+        fetchLatestData();
     });
 
     // Grade filter change - auto refresh
@@ -1405,31 +1028,23 @@
         fetchLatestData();
     });
 
-    // Page visibility change - pause/resume auto-refresh
+    // Page visibility change
     document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            console.log('Page hidden - pausing auto-refresh');
-        } else {
-            console.log('Page visible - resuming auto-refresh');
-            if (autoRefreshEnabled) {
-                fetchLatestData(); // Immediate refresh when page becomes visible
-            }
+        if (!document.hidden && autoRefreshEnabled) {
+            fetchLatestData();
         }
     });
 
     // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Set default date to TODAY (not first day of month)
-    const today = new Date();
-    document.getElementById('startDate').value = today.toISOString().split('T')[0];
-    
-    // Start auto-refresh
-    startAutoRefresh();
-    
-    // Initial data fetch
-    setTimeout(() => {
-        fetchLatestData();
-    }, 500);
-});
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        document.getElementById('startDate').value = today.toISOString().split('T')[0];
+        
+        startAutoRefresh();
+        
+        setTimeout(() => {
+            fetchLatestData();
+        }, 500);
+    });
 </script>
 @endsection

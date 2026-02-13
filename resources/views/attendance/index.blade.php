@@ -747,42 +747,59 @@
 
     // Display check-ins in the list
     function displayCheckIns(checkIns) {
-        const activityList = document.getElementById('activityList');
-        
-        if (checkIns.length === 0) {
-            activityList.innerHTML = `
-                <div class="empty-activity">
-                    <i class="bi bi-inbox"></i>
-                    <p>No check-ins yet today</p>
-                </div>
-            `;
-            return;
-        }
+    const activityList = document.getElementById('activityList');
+    
+    console.log('Check-ins:', checkIns); // debug line
 
-        activityList.innerHTML = '';
-        
-        checkIns.forEach(checkIn => {
-            const initials = checkIn.student_name.split(' ').map(n => n[0]).join('').substring(0, 2);
-            
-            const item = document.createElement('div');
-            item.className = 'activity-item';
-            item.innerHTML = `
-                <div class="activity-avatar">${initials}</div>
-                <div class="activity-info">
-                    <div class="activity-name">${checkIn.student_name}</div>
-                    <div class="activity-details">${checkIn.grade} • LRN: ${checkIn.lrn}</div>
-                </div>
-                <div class="activity-time">${checkIn.time_in}</div>
-            `;
-            
-            activityList.appendChild(item);
-        });
-
-        // Update last check-in time
-        if (checkIns.length > 0) {
-            document.getElementById('lastCheckIn').textContent = checkIns[0].time_in;
-        }
+    if (!checkIns || checkIns.length === 0) {
+        activityList.innerHTML = `
+            <div class="empty-activity">
+                <i class="bi bi-inbox"></i>
+                <p>No check-ins yet today</p>
+            </div>
+        `;
+        document.getElementById('lastCheckIn').textContent = '--';
+        return;
     }
+
+    activityList.innerHTML = '';
+
+    checkIns.forEach(checkIn => {
+        const name = checkIn.student_name || 'Unknown Student';
+        const grade = checkIn.grade || '';
+        const lrn = checkIn.lrn || '';
+        const timeIn = checkIn.time_in || '--';
+
+        // Generate initials safely
+        const initials = name
+            .split(' ')
+            .filter(n => n.length > 0)
+            .map(n => n[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase();
+
+        const item = document.createElement('div');
+        item.className = 'activity-item';
+
+        item.innerHTML = `
+            <div class="activity-avatar">${initials}</div>
+            <div class="activity-info">
+                <div class="activity-name">${name}</div>
+                <div class="activity-details">
+                    ${grade} ${lrn ? '• LRN: ' + lrn : ''}
+                </div>
+            </div>
+            <div class="activity-time">${timeIn}</div>
+        `;
+
+        activityList.appendChild(item);
+    });
+
+    // Update last check-in time
+    document.getElementById('lastCheckIn').textContent = checkIns[0].time_in || '--';
+}
+
 
     // Toggle sound
     document.getElementById('toggleSound').addEventListener('click', function() {
@@ -981,13 +998,19 @@
         circle.style.strokeDasharray = circumference;
         circle.style.strokeDashoffset = offset;
         
+        // Update percentage text color based on percentage
+        const percentageText = document.getElementById('attendancePercentage');
+        
         // Change color based on percentage
         if (percentage >= 80) {
             circle.style.stroke = '#10b981';
+            if (percentageText) percentageText.style.color = '#10b981';
         } else if (percentage >= 50) {
             circle.style.stroke = '#f59e0b';
+            if (percentageText) percentageText.style.color = '#f59e0b';
         } else {
             circle.style.stroke = '#ef4444';
+            if (percentageText) percentageText.style.color = '#ef4444';
         }
     }
 
@@ -1054,7 +1077,7 @@
         fetchTodayCheckIns();
 
         // Auto-refresh every 10 seconds
-        setInterval(fetchTodayCheckIns, 10000);
+        setInterval(fetchTodayCheckIns, 30000);
     });
 </script>
 @endsection

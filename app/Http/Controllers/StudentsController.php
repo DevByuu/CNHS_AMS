@@ -52,7 +52,7 @@ class StudentsController extends Controller
         }
 
         // Paginate results
-        $students = $query->orderBy('created_at', 'desc')->paginate(15);
+        $students = $query->orderBy('created_at', 'desc')->paginate(10);
 
         // Get statistics
         $studentsWithRfid = Student::whereNotNull('rfid')->count();
