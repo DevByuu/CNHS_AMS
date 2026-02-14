@@ -523,9 +523,9 @@ cd cnhs-attendance
 
 **Alternative:** Download ZIP from GitHub
 ```bash
-wget https://github.com/yourusername/cnhs-attendance/archive/main.zip
+wget [https://github.com/yourusername/cnhs-attendance/archive/main.zip
 unzip main.zip
-cd cnhs-attendance-main
+cd cnhs-attendance-main](https://github.com/DevByuu/CNHS_AMS)
 ```
 
 </details>
