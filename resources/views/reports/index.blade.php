@@ -676,9 +676,15 @@
                 }
 
                 // Update grade-by-day multi-line chart
-                if (data.gradeByDayData) {
-                    createTrendChart(data.gradeByDayData.labels, data.gradeByDayData.datasets);
-                }
+              if (data.gradeData) {
+    createTrendChart(
+        data.gradeData.labels,
+        [{
+            label: 'Attendance %',
+            values: data.gradeData.values
+        }]
+    );
+}
 
                 // Update doughnut chart
                 if (data.gradeData && data.gradeData.labels && data.gradeData.values) {
