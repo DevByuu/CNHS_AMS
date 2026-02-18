@@ -56,10 +56,33 @@ Route::middleware('auth')->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Students (AJAX modal compatible)
+    | Students
+    | IMPORTANT: Custom routes MUST come before Route::resource()
     |--------------------------------------------------------------------------
     */
+    Route::get('/students/download-template', [StudentsController::class, 'downloadTemplate'])->name('students.download-template');
+    Route::post('/students/import-csv', [StudentsController::class, 'importCsv'])->name('students.import-csv');
     Route::resource('students', StudentsController::class);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reports
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
+    Route::get('/reports/export-present', [ReportsController::class, 'exportPresentStudents'])->name('reports.export.present');
+    Route::get('/reports/realtime-data', [ReportsController::class, 'realtimeData'])->name('reports.realtime');
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Routes
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/api/reports/realtime', [ReportsController::class, 'realtimeData']);
+    Route::post('/api/reports/realtime', [ReportsController::class, 'getRealTimeData'])->name('api.reports.realtime');
+    Route::get('/api/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
+    Route::get('/api/attendance/today', [AttendanceController::class, 'todayCheckIns'])->name('attendance.today');
 });
 
 /*
@@ -70,54 +93,10 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'admin'])->group(function () {
 
     // Admin users
-    Route::get('/admin/users/create', [UserController::class, 'create'])
-        ->name('users.create');
-
-    Route::post('/admin/users', [UserController::class, 'store'])
-        ->name('users.store');
+    Route::get('/admin/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/admin/users', [UserController::class, 'store'])->name('users.store');
 
     // Attendance Routes
-    Route::get('/attendance', [AttendanceController::class, 'index'])
-        ->name('attendance.index');
-    
-    // ADD THIS LINE - RFID Check-in endpoint
-    Route::post('/attendance/checkin', [AttendanceController::class, 'storeRfid'])
-        ->name('attendance.checkin');
-
-    // Reports
-    Route::get('/reports', [ReportsController::class, 'index'])
-        ->name('reports.index');
+    Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('/attendance/checkin', [AttendanceController::class, 'storeRfid'])->name('attendance.checkin');
 });
-
-Route::prefix('reports')->group(function () {
-    Route::get('/', [ReportsController::class, 'index'])->name('reports.index');
-    Route::get('/export', [ReportsController::class, 'export'])->name('reports.export');
-});
-
-// Real-time API endpoint
-Route::get('/api/reports/realtime', [ReportsController::class, 'realtimeData'])->name('reports.realtime');
-
-Route::middleware(['auth'])->group(function () {
-    // Reports page
-    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
-    
-    // Export full attendance report (with date range)
-    Route::get('/reports/export', [ReportsController::class, 'export'])->name('reports.export');
-    
-    // Export present students report (single date)
-    Route::get('/reports/export-present', [ReportsController::class, 'exportPresentStudents'])
-         ->name('reports.export.present');
-});
-
-// API routes for real-time data
-Route::middleware(['auth'])->prefix('api')->group(function () {
-    // Get real-time report data
-    Route::post('/reports/realtime', [ReportsController::class, 'getRealTimeData'])
-         ->name('api.reports.realtime');
-});
-
-// In routes/web.php
-Route::get('/reports/export-present', [ReportsController::class, 'exportPresentStudents'])->name('reports.export-present');
-Route::get('/reports/realtime-data', [ReportsController::class, 'realtimeData'])->name('reports.realtime');
-Route::get('/api/dashboard/stats', [DashboardController::class, 'stats'])->name('dashboard.stats');
-Route::get('/api/attendance/today', [AttendanceController::class, 'todayCheckIns'])->name('attendance.today');

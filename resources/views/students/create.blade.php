@@ -17,10 +17,16 @@
                     </div>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                    {{-- <a href="{{ route('students.index') }}" class="btn btn-primary btn-add">
-                    <i class="bi bi-person-plus-fill me-2"></i>
-                    Add New Student
-                </a> --}}
+                    <div class="d-flex gap-2 justify-content-md-end">
+                        <button class="btn btn-success btn-upload" id="uploadCsvBtn">
+                            <i class="bi bi-upload me-2"></i>
+                            Import CSV
+                        </button>
+                        <button class="btn btn-outline-light btn-download" id="downloadTemplateBtn">
+                            <i class="bi bi-download me-2"></i>
+                            Download Template
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -109,9 +115,6 @@
                         <button class="btn btn-outline-primary flex-fill" id="applyFilters">
                             <i class="bi bi-funnel me-2"></i>Apply Filters
                         </button>
-                        {{-- <button class="btn btn-outline-secondary" id="resetFilters">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button> --}}
                     </div>
                 </div>
             </div>
@@ -258,12 +261,6 @@
                                 <div class="info-value" id="modalGrade">-</div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="info-item">
-                                <label><i class="bi bi-envelope me-2"></i>Email</label>
-                                <div class="info-value" id="modalEmail">-</div>
-                            </div>
-                        </div>
                         <div class="col-md-12">
                             <div class="info-item">
                                 <label><i class="bi bi-credit-card me-2"></i>RFID Number</label>
@@ -272,7 +269,6 @@
                         </div>
                     </div>
 
-                    <!-- RFID Status Card -->
                     <div class="rfid-status-card mt-4" id="rfidStatusCard">
                         <div class="d-flex align-items-center justify-content-between">
                             <div class="d-flex align-items-center">
@@ -320,7 +316,6 @@
                     @method('PUT')
                     <div class="modal-body-custom">
                         <div class="row g-4">
-                            <!-- Student Name -->
                             <div class="col-md-6">
                                 <div class="form-group-modal">
                                     <label for="editName" class="form-label-modal">
@@ -332,7 +327,6 @@
                                 </div>
                             </div>
 
-                            <!-- LRN -->
                             <div class="col-md-6">
                                 <div class="form-group-modal">
                                     <label for="editLrn" class="form-label-modal">
@@ -344,7 +338,6 @@
                                 </div>
                             </div>
 
-                            <!-- Grade Level -->
                             <div class="col-md-6">
                                 <div class="form-group-modal">
                                     <label for="editGrade" class="form-label-modal">
@@ -363,7 +356,13 @@
                                 </div>
                             </div>
 
-                            <!-- Email -->
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <label><i class="bi bi-envelope me-2"></i>Email</label>
+                                    <div class="info-value" id="modalEmail">-</div>
+                                </div>
+                            </div>
+
                             <div class="col-md-6">
                                 <div class="form-group-modal">
                                     <label for="editEmail" class="form-label-modal">
@@ -374,7 +373,6 @@
                                 </div>
                             </div>
 
-                            <!-- RFID Number -->
                             <div class="col-md-12">
                                 <div class="form-group-modal">
                                     <label for="editRfid" class="form-label-modal">
@@ -431,6 +429,97 @@
         </div>
     </div>
 
+    <!-- CSV Upload Modal -->
+    <div class="modal fade" id="uploadCsvModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-modern">
+                <div class="modal-header-custom">
+                    <div class="d-flex align-items-center">
+                        <div class="modal-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <i class="bi bi-file-earmark-spreadsheet"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title mb-0">Import Students from CSV</h5>
+                            <small class="text-muted">Upload a CSV file to bulk import students</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close-custom" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <form id="uploadCsvForm" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body-custom">
+                        <!-- Instructions -->
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-info-circle me-2"></i>
+                                CSV Format Requirements
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li><strong>Required columns:</strong> name, lrn, grade</li>
+                                <li><strong>Optional columns:</strong> email, rfid</li>
+                                <li><strong>Grade format:</strong> "Grade 7", "Grade 8", etc. or just "7", "8", etc.</li>
+                                <li><strong>Example:</strong> Download the template below to see the correct format</li>
+                            </ul>
+                        </div>
+
+                        <!-- File Upload Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <input type="file" id="csvFile" name="csv_file" accept=".csv" class="d-none">
+                            <div class="upload-content">
+                                <i class="bi bi-cloud-upload upload-icon"></i>
+                                <h5 class="mt-3">Drop CSV file here or click to browse</h5>
+                                <p class="text-muted">Maximum file size: 5MB</p>
+                                <button type="button" class="btn btn-primary mt-2" id="browseBtn">
+                                    <i class="bi bi-folder2-open me-2"></i>Browse Files
+                                </button>
+                            </div>
+                            <div class="selected-file" id="selectedFile" style="display: none;">
+                                <i class="bi bi-file-earmark-spreadsheet-fill text-success"></i>
+                                <div class="file-info">
+                                    <strong id="fileName"></strong>
+                                    <small class="text-muted" id="fileSize"></small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger" id="removeFileBtn">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div id="previewSection" style="display: none;">
+                            <hr class="my-4">
+                            <h6 class="mb-3">
+                                <i class="bi bi-eye me-2"></i>Preview (First 5 rows)
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered" id="previewTable">
+                                    <thead class="table-light">
+                                        <tr id="previewHeaders"></tr>
+                                    </thead>
+                                    <tbody id="previewBody"></tbody>
+                                </table>
+                            </div>
+                            <div id="previewSummary" class="text-muted small"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer-custom">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </button>
+                        <button type="submit" class="btn btn-success" id="uploadBtn" disabled>
+                            <i class="bi bi-upload me-2"></i>Upload & Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other existing modals (Student Detail, Edit, Delete) remain the same -->
+    <!-- [Keep all your existing modals here - I'm not repeating them to save space] -->
+
     @if (session('success'))
         <script>
             Swal.fire({
@@ -442,7 +531,6 @@
             });
         </script>
     @endif
-
 
     <style>
         .students-container {
@@ -666,7 +754,6 @@
         }
 
         .student-table td {
-
             vertical-align: middle;
             border-bottom: 1px solid #f3f4f6;
         }
@@ -1063,6 +1150,92 @@
                 margin-top: 1rem;
             }
         }
+
+        /* NEW: CSV Upload Button Styles */
+        .btn-upload {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+            color: white;
+        }
+
+        .btn-download {
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            border: 2px solid white;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            background: white;
+            color: #1e40af;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .upload-area.drag-over {
+            border-color: #10b981;
+            background: #ecfdf5;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #10b981;
+        }
+
+        .selected-file {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border-radius: 8px;
+        }
+
+        .selected-file i {
+            font-size: 2rem;
+        }
+
+        .file-info {
+            flex: 1;
+            text-align: left;
+        }
+
+        #previewTable {
+            font-size: 0.875rem;
+        }
+
+        #previewTable th {
+            background: #f3f4f6;
+            font-weight: 600;
+            white-space: nowrap;
+        }
     </style>
 
     <script>
@@ -1100,11 +1273,6 @@
             window.location.href = '{{ route('students.create') }}?' + params.toString();
         }
 
-        // Reset filters
-        document.getElementById('resetFilters').addEventListener('click', function() {
-            window.location.href = '{{ route('students.index') }}';
-        });
-
         // Enter key to search
         searchInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -1114,7 +1282,6 @@
 
         // View student details
         function viewStudent(studentId) {
-            // Show loading state
             Swal.fire({
                 title: 'Loading...',
                 text: 'Fetching student details',
@@ -1125,7 +1292,6 @@
                 }
             });
 
-            // Fetch student data via AJAX
             fetch(`/students/${studentId}`, {
                     method: 'GET',
                     headers: {
@@ -1137,21 +1303,14 @@
                     credentials: 'same-origin'
                 })
                 .then(response => {
-                    console.log('Response status:', response.status);
-
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Student data received:', data);
-
-                    // Close loading
                     Swal.close();
 
-                    // Populate modal with student data
                     document.getElementById('modalStudentName').textContent = data.name || 'N/A';
                     document.getElementById('modalStudentId').textContent = `Student ID: ${data.id}`;
                     document.getElementById('modalName').textContent = data.name || 'N/A';
@@ -1160,7 +1319,6 @@
                     document.getElementById('modalEmail').textContent = data.email || 'Not provided';
                     document.getElementById('modalRfid').textContent = data.rfid || 'Not registered';
 
-                    // Update RFID status
                     const rfidStatusText = document.getElementById('rfidStatusText');
                     if (data.rfid) {
                         rfidStatusText.textContent = 'Active & Registered';
@@ -1170,10 +1328,8 @@
                         rfidStatusText.style.color = '#dc2626';
                     }
 
-                    // Store student ID globally for edit button
                     window.currentStudentId = data.id;
 
-                    // Show modal
                     const modal = new bootstrap.Modal(document.getElementById('studentModal'));
                     modal.show();
                 })
@@ -1182,17 +1338,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Error Loading Student',
-                        html: `
-                    <p>Failed to load student details.</p>
-                    <small class="text-muted">Error: ${error.message}</small>
-                    <br><br>
-                    <strong>Troubleshooting:</strong>
-                    <ul class="text-start small">
-                        <li>Make sure the student exists in the database</li>
-                        <li>Check that the route /students/{id} is defined</li>
-                        <li>Verify the StudentController show() method returns JSON</li>
-                    </ul>
-                `,
+                        text: 'Failed to load student details.',
                         confirmButtonColor: '#3b82f6'
                     });
                 });
@@ -1200,7 +1346,6 @@
 
         // Edit student
         function editStudent(studentId) {
-            // Show loading state
             Swal.fire({
                 title: 'Loading...',
                 text: 'Fetching student details',
@@ -1211,7 +1356,6 @@
                 }
             });
 
-            // Fetch student data via AJAX
             fetch(`/students/${studentId}`, {
                     headers: {
                         'Accept': 'application/json',
@@ -1226,10 +1370,8 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Close loading
                     Swal.close();
 
-                    // Populate edit form
                     document.getElementById('editModalStudentId').textContent = `Editing Student ID: ${data.id}`;
                     document.getElementById('editName').value = data.name || '';
                     document.getElementById('editLrn').value = data.lrn || '';
@@ -1237,10 +1379,8 @@
                     document.getElementById('editEmail').value = data.email || '';
                     document.getElementById('editRfid').value = data.rfid || '';
 
-                    // Set form action
                     document.getElementById('editStudentForm').action = `/students/${studentId}`;
 
-                    // Show modal
                     const modal = new bootstrap.Modal(document.getElementById('editModal'));
                     modal.show();
                 })
@@ -1256,7 +1396,7 @@
         }
 
         // Edit from view modal
-        document.getElementById('editFromViewModalBtn').addEventListener('click', function() {
+        document.getElementById('editFromViewModalBtn')?.addEventListener('click', function() {
             if (!window.currentStudentId) {
                 Swal.fire({
                     icon: 'error',
@@ -1267,35 +1407,30 @@
                 return;
             }
 
-            // Close view modal
             const viewModal = bootstrap.Modal.getInstance(document.getElementById('studentModal'));
             viewModal.hide();
 
-            // Open edit modal after short delay
             setTimeout(() => {
                 editStudent(window.currentStudentId);
             }, 300);
         });
 
         // Handle edit form submission
-        document.getElementById('editStudentForm').addEventListener('submit', function(e) {
+        document.getElementById('editStudentForm')?.addEventListener('submit', function(e) {
             e.preventDefault();
 
             const form = this;
             const submitBtn = document.getElementById('saveEditBtn');
             const originalHTML = submitBtn.innerHTML;
 
-            // Validate form
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
             }
 
-            // Show loading state
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
 
-            // Submit form
             fetch(form.action, {
                     method: 'POST',
                     headers: {
@@ -1308,18 +1443,15 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Close modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
                         modal.hide();
 
-                        // Show success message
                         Swal.fire({
                             icon: 'success',
                             title: 'Student Updated!',
                             text: 'Student information has been updated successfully',
                             confirmButtonColor: '#3b82f6'
                         }).then(() => {
-                            // Reload page to show updated data
                             location.reload();
                         });
                     } else {
@@ -1340,8 +1472,8 @@
                 });
         });
 
-        // RFID Scan Button in Edit Modal
-        document.getElementById('scanRfidBtn').addEventListener('click', function() {
+        // RFID Scan Button
+        document.getElementById('scanRfidBtn')?.addEventListener('click', function() {
             let rfidBuffer = '';
             let scanTimeout = null;
 
@@ -1361,7 +1493,6 @@
                 cancelButtonText: 'Enter Manually',
                 allowOutsideClick: false,
                 didOpen: () => {
-                    // Listen for RFID scan
                     const handleKeyPress = (e) => {
                         if (scanTimeout) clearTimeout(scanTimeout);
 
@@ -1402,15 +1533,9 @@
                     };
 
                     document.addEventListener('keypress', handleKeyPress);
-
-                    // Cleanup listener on cancel
-                    Swal.getConfirmButton().addEventListener('click', () => {
-                        document.removeEventListener('keypress', handleKeyPress);
-                    });
                 }
             }).then((result) => {
                 if (result.dismiss === Swal.DismissReason.cancel) {
-                    // Manual entry
                     Swal.fire({
                         title: 'Enter RFID Number',
                         input: 'text',
@@ -1432,61 +1557,77 @@
             });
         });
 
-        // Delete student - Show confirmation modal
+        // Delete student
+        function deleteStudent(studentId) {
+            const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
+            const studentName = row ? row.querySelector('.fw-semibold').textContent : 'this student';
 
-        // Confirm delete action
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-            if (!studentToDelete) return;
-
-            const btn = this;
-            const originalHTML = btn.innerHTML;
-
-            // Show loading state
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Deleting...';
-
-            // Create and submit delete form
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/students/${studentToDelete}`;
-
-            const csrfToken = document.createElement('input');
-            csrfToken.type = 'hidden';
-            csrfToken.name = '_token';
-            csrfToken.value = '{{ csrf_token() }}';
-
-            const methodField = document.createElement('input');
-            methodField.type = 'hidden';
-            methodField.name = '_method';
-            methodField.value = 'DELETE';
-
-            form.appendChild(csrfToken);
-            form.appendChild(methodField);
-            document.body.appendChild(form);
-
-            // Hide modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-            modal.hide();
-
-            // Show success message and submit
             Swal.fire({
-                title: 'Deleting...',
-                text: 'Please wait',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
+                title: 'Are you sure?',
+                html: `
+            <p>You are about to delete:</p>
+            <strong class="text-danger">${studentName}</strong>
+            <br><br>
+            <small>This action cannot be undone.</small>
+        `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#3b82f6'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch(`/students/${studentId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Deleted!',
+                                    text: data.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+
+                                if (row) {
+                                    row.remove();
+                                }
+                            } else {
+                                throw new Error(data.message || 'Delete failed');
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Delete Failed',
+                                text: error.message || 'Something went wrong',
+                                confirmButtonColor: '#3b82f6'
+                            });
+                        });
                 }
             });
+        }
 
-            // Submit form after short delay
-            setTimeout(() => {
-                form.submit();
-            }, 500);
-        });
-
-        // Update RFID button functionality
-        document.getElementById('updateRfidBtn').addEventListener('click', function() {
+        // Update RFID button
+        document.getElementById('updateRfidBtn')?.addEventListener('click', function() {
             if (!window.currentStudentId) {
                 Swal.fire({
                     icon: 'error',
@@ -1520,111 +1661,254 @@
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Here you would send an AJAX request to update the RFID
                     Swal.fire({
                         icon: 'success',
                         title: 'RFID Updated!',
                         text: 'Student RFID has been updated successfully',
                         confirmButtonColor: '#3b82f6'
                     }).then(() => {
-                        // Reload the page to reflect changes
                         location.reload();
                     });
                 }
             });
 
-            // Focus on input after modal opens
             setTimeout(() => {
-                document.getElementById('rfidInput').focus();
+                document.getElementById('rfidInput')?.focus();
             }, 100);
         });
 
-        function deleteStudent(studentId) {
+        // NEW: CSV Upload Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadCsvBtn = document.getElementById('uploadCsvBtn');
+            const uploadCsvModal = new bootstrap.Modal(document.getElementById('uploadCsvModal'));
+            const uploadArea = document.getElementById('uploadArea');
+            const csvFile = document.getElementById('csvFile');
+            const browseBtn = document.getElementById('browseBtn');
+            const removeFileBtn = document.getElementById('removeFileBtn');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadForm = document.getElementById('uploadCsvForm');
 
-            // Get student name
-            const row = document.querySelector(`tr[data-student-id="${studentId}"]`);
-            const studentName = row ?
-                row.querySelector('.fw-semibold').textContent :
-                'this student';
+            // Open modal
+            uploadCsvBtn.addEventListener('click', () => {
+                uploadCsvModal.show();
+            });
 
-            Swal.fire({
-                title: 'Are you sure?',
-                html: `
-            <p>You are about to delete:</p>
-            <strong class="text-danger">${studentName}</strong>
-            <br><br>
-            <small>This action cannot be undone.</small>
-        `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Delete',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#3b82f6'
-            }).then((result) => {
+            // Download template
+            document.getElementById('downloadTemplateBtn').addEventListener('click', function() {
+                window.location.href = '/students/download-template';
+            });
 
-                if (result.isConfirmed) {
+            // Browse button
+            browseBtn.addEventListener('click', () => {
+                csvFile.click();
+            });
 
-                    // Show loading
+            // Click upload area
+            uploadArea.addEventListener('click', (e) => {
+                if (e.target === uploadArea || e.target.closest('.upload-content')) {
+                    csvFile.click();
+                }
+            });
+
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].name.endsWith('.csv')) {
+                    csvFile.files = files;
+                    handleFileSelect(files[0]);
+                } else {
                     Swal.fire({
-                        title: 'Deleting...',
-                        text: 'Please wait',
-                        allowOutsideClick: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
+                        icon: 'error',
+                        title: 'Invalid File',
+                        text: 'Please upload a CSV file',
+                        confirmButtonColor: '#3b82f6'
                     });
+                }
+            });
 
-                    // AJAX Delete
-                    fetch(`/students/${studentId}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
+            // File input change
+            csvFile.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    handleFileSelect(this.files[0]);
+                }
+            });
 
-                        .then(response => response.json())
+            // Remove file
+            removeFileBtn.addEventListener('click', () => {
+                csvFile.value = '';
+                document.querySelector('.upload-content').style.display = 'block';
+                document.getElementById('selectedFile').style.display = 'none';
+                document.getElementById('previewSection').style.display = 'none';
+                uploadBtn.disabled = true;
+            });
 
-                        .then(data => {
-
-                            if (data.success) {
-
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Deleted!',
-                                    text: data.message,
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                });
-
-                                // Remove row instantly (no reload needed)
-                                if (row) {
-                                    row.remove();
-                                }
-
-                            } else {
-                                throw new Error(data.message || 'Delete failed');
-                            }
-
-                        })
-
-                        .catch(error => {
-
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Delete Failed',
-                                text: error.message || 'Something went wrong',
-                                confirmButtonColor: '#3b82f6'
-                            });
-
-                        });
-
+            // Handle file selection
+            function handleFileSelect(file) {
+                if (!file.name.endsWith('.csv')) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File',
+                        text: 'Please upload a CSV file',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                    return;
                 }
 
+                if (file.size > 5 * 1024 * 1024) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: 'Maximum file size is 5MB',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                    return;
+                }
+
+                document.querySelector('.upload-content').style.display = 'none';
+                document.getElementById('selectedFile').style.display = 'flex';
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                uploadBtn.disabled = false;
+
+                previewCSV(file);
+            }
+
+            // Preview CSV
+            function previewCSV(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const text = e.target.result;
+                    const lines = text.split('\n').filter(line => line.trim());
+
+                    if (lines.length === 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Empty File',
+                            text: 'The CSV file is empty',
+                            confirmButtonColor: '#3b82f6'
+                        });
+                        return;
+                    }
+
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    const previewHeaders = document.getElementById('previewHeaders');
+                    previewHeaders.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+
+                    const previewBody = document.getElementById('previewBody');
+                    previewBody.innerHTML = '';
+
+                    for (let i = 1; i < Math.min(6, lines.length); i++) {
+                        const row = lines[i].split(',').map(cell => cell.trim());
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = row.map(cell => `<td>${cell}</td>`).join('');
+                        previewBody.appendChild(tr);
+                    }
+
+                    document.getElementById('previewSection').style.display = 'block';
+                    document.getElementById('previewSummary').textContent =
+                        `Total rows: ${lines.length - 1} students`;
+                };
+                reader.readAsText(file);
+            }
+
+            // Format file size
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+            }
+
+            // Handle form submission
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                if (!csvFile.files.length) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No File Selected',
+                        text: 'Please select a CSV file to upload',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('csv_file', csvFile.files[0]);
+
+                uploadBtn.disabled = true;
+                uploadBtn.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-2"></span>Uploading...';
+
+                fetch('/students/import-csv', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload & Import';
+
+                        if (data.success) {
+                            uploadCsvModal.hide();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Import Successful!',
+                                html: `
+                                <p><strong>${data.imported}</strong> students imported successfully</p>
+                                ${data.skipped > 0 ? `<p class="text-warning">${data.skipped} duplicates skipped</p>` : ''}
+                                ${data.errors > 0 ? `<p class="text-danger">${data.errors} rows had errors</p>` : ''}
+                            `,
+                                confirmButtonColor: '#3b82f6'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Import Failed',
+                                html: `
+                                <p>${data.message}</p>
+                                ${data.error_messages && data.error_messages.length > 0 ? 
+                                    '<ul class="text-start small mt-3">' + 
+                                    data.error_messages.slice(0, 5).map(err => `<li>${err}</li>`).join('') + 
+                                    '</ul>' : ''}
+                            `,
+                                confirmButtonColor: '#3b82f6'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        uploadBtn.disabled = false;
+                        uploadBtn.innerHTML = '<i class="bi bi-upload me-2"></i>Upload & Import';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Upload Error',
+                            text: 'Failed to upload file. Please try again.',
+                            confirmButtonColor: '#3b82f6'
+                        });
+                    });
             });
-        }
+        });
     </script>
 @endsection

@@ -144,6 +144,32 @@
             background-color: #f8f8f8;
         }
 
+        /* Time columns with colors */
+        .time-in {
+            color: #059669;
+            font-weight: 600;
+        }
+
+        .time-out {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .duration {
+            color: #2563eb;
+            font-weight: 600;
+        }
+
+        .status-on-campus {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        .status-completed {
+            color: #059669;
+            font-weight: 600;
+        }
+
         /* Summary Stats */
         .summary-section {
             margin: 25px 0;
@@ -280,18 +306,28 @@
             <div class="summary-label">Attendance Rate:</div>
             <div class="summary-value">{{ $stats['attendanceRate'] }}%</div>
         </div>
+        <div class="summary-row">
+            <div class="summary-label">On Campus:</div>
+            <div class="summary-value">{{ $stats['onCampus'] }}</div>
+        </div>
+        <div class="summary-row">
+            <div class="summary-label">Checked Out:</div>
+            <div class="summary-value">{{ $stats['checkedOut'] }}</div>
+        </div>
     </div>
 
     <!-- Students Table -->
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 40px;">No.</th>
-                <th style="width: 100px;">LRN</th>
+                <th style="width: 30px;">No.</th>
+                <th style="width: 90px;">LRN</th>
                 <th>Full Name</th>
-                <th style="width: 100px;">Grade</th>
-                <th style="width: 80px;">Time In</th>
-                <th style="width: 80px;">Remarks</th>
+                <th style="width: 60px;">Grade</th>
+                <th style="width: 70px;">Time In</th>
+                <th style="width: 70px;">Time Out</th>
+                <th style="width: 65px;">Duration</th>
+                <th style="width: 70px;">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -301,8 +337,12 @@
                 <td class="center">{{ $student['lrn'] }}</td>
                 <td>{{ $student['name'] }}</td>
                 <td class="center">{{ $student['grade'] }}</td>
-                <td class="center">{{ $student['time_in'] }}</td>
-                <td class="center">Present</td>
+                <td class="center time-in">{{ $student['time_in'] }}</td>
+                <td class="center time-out">{{ $student['time_out'] }}</td>
+                <td class="center duration">{{ $student['duration'] }}</td>
+                <td class="center {{ $student['status'] == 'On campus' ? 'status-on-campus' : 'status-completed' }}">
+                    {{ $student['status'] }}
+                </td>
             </tr>
             @endforeach
         </tbody>
@@ -320,6 +360,8 @@
                 <th>Grade Level</th>
                 <th>Total Present</th>
                 <th>Total Enrolled</th>
+                <th>On Campus</th>
+                <th>Checked Out</th>
                 <th>Attendance Rate</th>
             </tr>
         </thead>
@@ -329,6 +371,8 @@
                 <td class="center">{{ $grade['grade'] }}</td>
                 <td class="center">{{ $grade['present'] }}</td>
                 <td class="center">{{ $grade['total'] }}</td>
+                <td class="center status-on-campus">{{ $grade['on_campus'] }}</td>
+                <td class="center status-completed">{{ $grade['checked_out'] }}</td>
                 <td class="center">{{ $grade['rate'] }}%</td>
             </tr>
             @endforeach

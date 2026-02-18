@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use App\Models\Student;
 use App\Models\Attendance;
 use Carbon\Carbon;
@@ -21,7 +22,6 @@ class StudentsController extends Controller
 
     /**
      * Show the form for creating a new student AND list all students
-     * (This is your main student management page)
      */
     public function create(Request $request)
     {
@@ -160,5 +160,176 @@ class StudentsController extends Controller
 
         return redirect()->route('students.create')
             ->with('success', $studentName . ' deleted successfully!');
+    }
+
+    /**
+     * Download CSV template
+     */
+    public function downloadTemplate()
+    {
+        $filename = 'student_import_template.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() {
+            $file = fopen('php://output', 'w');
+            
+            // Headers
+            fputcsv($file, ['name', 'lrn', 'grade', 'email', 'rfid']);
+            
+            // Sample data
+            fputcsv($file, ['Juan Dela Cruz', '1000000001', 'Grade 7', 'juan@example.com', '']);
+            fputcsv($file, ['Maria Santos', '1000000002', 'Grade 8', 'maria@example.com', 'RFID101']);
+            fputcsv($file, ['Pedro Reyes', '1000000003', 'Grade 9', 'pedro@example.com', '']);
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Import students from CSV
+     */
+    public function importCsv(Request $request)
+    {
+        try {
+            // Validate file
+            $validator = Validator::make($request->all(), [
+                'csv_file' => 'required|file|max:5120'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file. Please upload a CSV file (max 5MB)',
+                    'errors' => $validator->errors()->all()
+                ], 422);
+            }
+
+            $file = $request->file('csv_file');
+
+            // Check extension manually
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, ['csv', 'txt'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file. Please upload a CSV file.',
+                ], 422);
+            }
+
+            $path = $file->getRealPath();
+
+            // Read CSV - handle all line ending formats (Windows \r\n, Mac \r, Linux \n)
+            $content = file_get_contents($path);
+            $content = str_replace("\r\n", "\n", $content);
+            $content = str_replace("\r", "\n", $content);
+            $lines = array_filter(explode("\n", $content), fn($line) => trim($line) !== '');
+            $csvData = array_map('str_getcsv', array_values($lines));
+
+            if (empty($csvData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'CSV file is empty'
+                ], 422);
+            }
+
+            // Get headers
+            $headers = array_map('trim', array_map('strtolower', $csvData[0]));
+
+            // Validate required columns
+            $requiredColumns = ['name', 'lrn', 'grade'];
+            $missingColumns = array_diff($requiredColumns, $headers);
+
+            if (!empty($missingColumns)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing required columns: ' . implode(', ', $missingColumns)
+                ], 422);
+            }
+
+            // Process rows
+            $imported = 0;
+            $skipped = 0;
+            $errors = 0;
+            $errorMessages = [];
+
+            for ($i = 1; $i < count($csvData); $i++) {
+                $row = $csvData[$i];
+
+                // Skip empty rows
+                if (empty(array_filter($row, fn($v) => trim($v) !== ''))) {
+                    continue;
+                }
+
+                // Map row data to headers
+                $data = [];
+                foreach ($headers as $index => $header) {
+                    $data[$header] = isset($row[$index]) ? trim($row[$index]) : null;
+                }
+
+                // Validate required fields
+                if (empty($data['name']) || empty($data['lrn']) || empty($data['grade'])) {
+                    $errors++;
+                    $errorMessages[] = "Row " . ($i + 1) . ": Missing required fields (name, lrn, or grade)";
+                    continue;
+                }
+
+                // Normalize grade - accept "7" or "Grade 7"
+                $grade = trim($data['grade']);
+                if (!str_starts_with(strtolower($grade), 'grade')) {
+                    $grade = 'Grade ' . $grade;
+                }
+
+                // Validate grade — FIXED: must match normalized "Grade X" format
+                $validGrades = ['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'];
+                if (!in_array($grade, $validGrades)) {
+                    $errors++;
+                    $errorMessages[] = "Row " . ($i + 1) . ": Invalid grade '{$grade}'";
+                    continue;
+                }
+
+                // Check if student already exists by LRN
+                if (Student::where('lrn', $data['lrn'])->exists()) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Create student
+                try {
+                    Student::create([
+                        'name'  => $data['name'],
+                        'lrn'   => $data['lrn'],
+                        'grade' => $grade,
+                        'email' => !empty($data['email']) ? $data['email'] : null,
+                        'rfid'  => !empty($data['rfid']) ? $data['rfid'] : null,
+                    ]);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $errors++;
+                    $errorMessages[] = "Row " . ($i + 1) . ": " . $e->getMessage();
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Import completed successfully",
+                'imported' => $imported,
+                'skipped' => $skipped,
+                'errors' => $errors,
+                'error_messages' => array_slice($errorMessages, 0, 10)
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('CSV Import Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process CSV file: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

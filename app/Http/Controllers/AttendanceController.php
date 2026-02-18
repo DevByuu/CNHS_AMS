@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Student;
 use App\Models\Attendance;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AttendanceController extends Controller
@@ -33,7 +34,7 @@ class AttendanceController extends Controller
         return view('attendance.rfid-check');
     }
 
-    // Handle RFID check-in
+    // Handle RFID check-in AND check-out
     public function storeRfid(Request $request)
     {
         $request->validate([
@@ -52,49 +53,89 @@ class AttendanceController extends Controller
 
         $today = Carbon::now()->toDateString();
 
-        // Check if student already checked in today
-        $alreadyCheckedIn = Attendance::where('student_id', $student->id) // Using student->id here!
+        // Check if student has an attendance record for today
+        $attendance = Attendance::where('student_id', $student->id)
             ->whereDate('date', $today)
-            ->whereNotNull('time_in')
             ->first();
 
-        if ($alreadyCheckedIn) {
-            $checkInTime = Carbon::parse($alreadyCheckedIn->time_in)->format('h:i A');
+        // CASE 1: No record exists - CREATE CHECK-IN
+        if (!$attendance) {
+            $timeIn = Carbon::now();
+            
+            Attendance::create([
+                'student_id' => $student->id,
+                'date'       => $today,
+                'time_in'    => $timeIn->format('H:i:s'),
+                'status'     => 'present'
+            ]);
+
+            // Get updated stats
+            $stats = $this->getTodayStats();
 
             return response()->json([
-                'success' => false,
-                'message' => $student->name . ' already checked in today at ' . $checkInTime
-            ], 400);
+                'success' => true,
+                'action' => 'check-in',
+                'message' => 'Check-in successful',
+                'student' => [
+                    'id'    => $student->id,
+                    'name'  => $student->name,
+                    'lrn'   => $student->lrn,
+                    'grade' => $student->grade ?? 'N/A',
+                    'time_in' => $timeIn->format('h:i A'),
+                ],
+                'stats' => $stats
+            ]);
         }
 
-        // Record attendance with STUDENT ID (not auth user id)
-        Attendance::create([
-            'student_id' => $student->id, // IMPORTANT: This is the student's ID
-            'date'       => $today,
-            'time_in'    => Carbon::now()->format('H:i:s'),
-        ]);
+        // CASE 2: Has record but NO time_out - PROCESS CHECK-OUT
+        if ($attendance && !$attendance->time_out) {
+            $timeIn = Carbon::parse($attendance->date . ' ' . $attendance->time_in);
+            $timeOut = Carbon::now();
+            
+            // Calculate duration in minutes
+            $durationMinutes = $timeIn->diffInMinutes($timeOut);
+            
+            $attendance->update([
+                'time_out' => $timeOut->format('H:i:s'),
+                'duration_minutes' => $durationMinutes
+            ]);
 
-        // Refresh stats
-        $total = Student::count();
-        $present = Attendance::whereDate('date', $today)
-            ->whereNotNull('time_in')
-            ->count();
-        $absent = $total - $present;
+            // Get updated stats
+            $stats = $this->getTodayStats();
 
+            return response()->json([
+                'success' => true,
+                'action' => 'check-out',
+                'message' => 'Check-out successful',
+                'student' => [
+                    'id'       => $student->id,
+                    'name'     => $student->name,
+                    'lrn'      => $student->lrn,
+                    'grade'    => $student->grade ?? 'N/A',
+                    'time_in'  => Carbon::parse($attendance->time_in)->format('h:i A'),
+                    'time_out' => $timeOut->format('h:i A'),
+                    'duration' => $this->formatDuration($durationMinutes),
+                ],
+                'stats' => $stats
+            ]);
+        }
+
+        // CASE 3: Already checked out
         return response()->json([
-            'success' => true,
+            'success' => false,
+            'message' => $student->name . ' already checked out for today.',
             'student' => [
-                'name'  => $student->name,
-                'lrn'   => $student->lrn,
-                'grade' => $student->grade ?? 'N/A',
-            ],
-            'stats' => [
-                'total'   => $total,
-                'present' => $present,
-                'absent'  => $absent,
+                'name'     => $student->name,
+                'time_in'  => Carbon::parse($attendance->time_in)->format('h:i A'),
+                'time_out' => Carbon::parse($attendance->time_out)->format('h:i A'),
+                'duration' => $this->formatDuration($attendance->duration_minutes),
             ]
-        ]);
+        ], 400);
     }
+
+    /**
+     * Get today's check-ins with time-out information
+     */
     public function todayCheckIns()
     {
         $today = Carbon::today();
@@ -102,40 +143,83 @@ class AttendanceController extends Controller
         // Get all check-ins for today with student info
         $checkIns = DB::table('attendances')
             ->join('students', 'attendances.student_id', '=', 'students.id')
-            ->whereDate('attendances.date', $today) // ✅ safer than exact match
+            ->whereDate('attendances.date', $today)
             ->where('attendances.status', 'present')
             ->select(
                 'students.name as student_name',
                 'students.lrn',
                 'students.grade',
                 'attendances.time_in',
+                'attendances.time_out',
+                'attendances.duration_minutes',
                 'attendances.created_at'
             )
             ->orderBy('attendances.created_at', 'desc')
             ->get()
             ->map(function ($checkIn) {
+                $timeIn = $checkIn->time_in ? Carbon::parse($checkIn->time_in)->format('h:i A') : '--';
+                $timeOut = $checkIn->time_out ? Carbon::parse($checkIn->time_out)->format('h:i A') : 'Not yet';
+                $duration = $checkIn->duration_minutes ? $this->formatDuration($checkIn->duration_minutes) : 'On campus';
+                $status = $checkIn->time_out ? 'Completed' : 'On campus';
+
                 return [
                     'student_name' => $checkIn->student_name ?? 'Unknown Student',
                     'lrn' => $checkIn->lrn ?? '',
                     'grade' => $checkIn->grade ?? '',
-                    'time_in' => $checkIn->time_in ? Carbon::parse($checkIn->time_in)->format('h:i A') : '--',
+                    'time_in' => $timeIn,
+                    'time_out' => $timeOut,
+                    'duration' => $duration,
+                    'status' => $status,
                     'created_at' => $checkIn->created_at
                 ];
             });
 
         // Get stats
-        $totalStudents = Student::count();
-        $presentCount = $checkIns->count();
-        $absentCount = $totalStudents - $presentCount;
+        $stats = $this->getTodayStats();
 
         return response()->json([
             'success' => true,
             'checkIns' => $checkIns,
-            'stats' => [
-                'total' => $totalStudents,
-                'present' => $presentCount,
-                'absent' => $absentCount
-            ]
+            'stats' => $stats
         ]);
+    }
+
+    /**
+     * Get today's statistics
+     */
+    private function getTodayStats()
+    {
+        $today = Carbon::now()->toDateString();
+        $totalStudents = Student::count();
+        
+        $presentToday = Attendance::whereDate('date', $today)
+            ->whereNotNull('time_in')
+            ->count();
+        
+        $absentToday = $totalStudents - $presentToday;
+
+        return [
+            'total' => $totalStudents,
+            'present' => $presentToday,
+            'absent' => $absentToday
+        ];
+    }
+
+    /**
+     * Format duration in hours and minutes
+     */
+    private function formatDuration($minutes)
+    {
+        if (!$minutes) {
+            return '0m';
+        }
+
+        $hours = floor($minutes / 60);
+        $mins = $minutes % 60;
+        
+        if ($hours > 0) {
+            return "{$hours}h {$mins}m";
+        }
+        return "{$mins}m";
     }
 }
