@@ -99,4 +99,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Attendance Routes
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance/checkin', [AttendanceController::class, 'storeRfid'])->name('attendance.checkin');
-});
+
+       Route::get('/students/download-template', [StudentsController::class, 'downloadTemplate'])->name('students.download-template');
+    Route::post('/students/import-csv', [StudentsController::class, 'importCsv'])->name('students.import-csv');
+    Route::resource('students', StudentsController::class);
+
+
+    });
