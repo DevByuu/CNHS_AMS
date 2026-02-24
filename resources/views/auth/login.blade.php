@@ -102,23 +102,25 @@
     <style>
         /* Reset and Base Styles */
         /* Apply background to the whole page */
-        body {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 
-            /* Background image */
-            background-image: url(img/cnhs.png);
+    background: 
+        linear-gradient(
+            rgba(0, 64, 255, 0.65), 
+            rgba(0, 64, 255, 0.65)
+        ),
+        url("{{ asset('img/BG2.jpg') }}");
 
-            background-size: cover;
-            /* Make it cover the whole page */
-            background-repeat: no-repeat;
-            /* Don’t repeat */
-            background-position: center;
-            /* Center it */
-            height: 100vh;
-            /* Make body take full viewport height */
-        }
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
 
 
         .login-container {

@@ -43,7 +43,7 @@
         }
 
         body {
-            background-image: url("{{ asset('img/bg.png') }}");
+            background-image: url("{{ asset('img/BG2.jpg') }}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -488,7 +488,7 @@
     <main class="main-content {{ auth()->guest() ? 'full-width' : '' }}">
         @yield('content')
     </main>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.5/dist/sweetalert2.all.min.js"></script>

@@ -64,6 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/students/import-csv', [StudentsController::class, 'importCsv'])->name('students.import-csv');
     Route::resource('students', StudentsController::class);
 
+
+
     /*
     |--------------------------------------------------------------------------
     | Reports
