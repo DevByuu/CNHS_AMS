@@ -224,8 +224,10 @@
     .activity-avatar { width:48px; height:48px; border-radius:10px; background:linear-gradient(135deg,#10b981,#059669); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1rem; flex-shrink:0; }
     .activity-info { flex:1; }
     .activity-name    { font-weight:600; color:#111827; margin-bottom:0.25rem; }
-    .activity-details { font-size:0.8125rem; color:#6b7280; }
-    .activity-time    { font-size:0.875rem; color:#10b981; font-weight:600; white-space:nowrap; }
+    .activity-details { font-size:0.8125rem; color:#6b7280; margin-bottom:0.5rem; }
+    .activity-times   { display:flex; gap:1rem; font-size:0.8125rem; }
+    .time-in  { color:#10b981; font-weight:600; }
+    .time-out { color:#f59e0b; font-weight:600; }
     .empty-activity   { text-align:center; color:#9ca3af; padding:3rem 1rem; }
     .empty-activity i { font-size:4rem; margin-bottom:1rem; display:block; }
 
@@ -243,52 +245,22 @@
 </style>
 
 <script>
-
-let lastUpdate = null;
-
-function loadAttendance() {
-
-    fetch("/attendance/today-api")
-    .then(response => response.json())
-    .then(data => {
-
-        if(!data.success) return;
-
-        const checkIns = data.checkIns;
-
-        // Update stats
-        document.getElementById('totalStudents').textContent = data.stats.total;
-        document.getElementById('presentToday').textContent = data.stats.present;
-        document.getElementById('absentToday').textContent = data.stats.absent;
-
-        // Update list
-        displayCheckIns(checkIns);
-
-    })
-    .catch(error => console.log("Error:", error));
-
-}
-
-
-// AUTO REFRESH EVERY 1 SECOND
-setInterval(loadAttendance, 1000);
-
-
-// FIRST LOAD
-loadAttendance();
-
-</script>
-
-<script>
     let soundEnabled       = true;
     let lastKnownId        = null;
     let lastKnownUpdatedAt = null;
     let isFirstLoad        = true;
 
-    // ── Clock ──────────────────────────────────────────────────────────────────
+    // ── Clock with Philippine Time ─────────────────────────────────────────────
     function updateTime() {
-        document.getElementById('currentTime').textContent =
-            new Date().toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        const now = new Date();
+        const options = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+            timeZone: 'Asia/Manila'
+        };
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', options);
     }
     updateTime();
     setInterval(updateTime, 1000);
@@ -298,39 +270,69 @@ loadAttendance();
         soundEnabled = !soundEnabled;
         document.getElementById('soundIcon').className    = soundEnabled ? 'bi bi-volume-up' : 'bi bi-volume-mute';
         document.getElementById('soundText').textContent  = soundEnabled ? 'Sound ON' : 'Sound OFF';
+        console.log('🔊 Sound:', soundEnabled ? 'ON' : 'OFF');
     });
 
-    // ── Poll every 3 seconds ───────────────────────────────────────────────────
+    // ── Auto-refresh every 1 second with DEBUG LOGGING ─────────────────────────
     async function pollAttendance() {
         try {
             const res = await fetch('/api/attendance/today', {
-                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                headers: { 
+                    'Accept': 'application/json', 
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+                }
             });
 
-            if (!res.ok) throw new Error('Poll failed');
+            if (!res.ok) {
+                console.error('❌ Poll failed:', res.status);
+                return;
+            }
 
             const data = await res.json();
-            if (!data.success) return;
+            if (!data.success) {
+                console.warn('⚠️ API returned success: false');
+                return;
+            }
 
             const latestId        = data.latest_id;
             const latestUpdatedAt = data.latest_updated_at;
 
-            // Detect new scan only after first load
+            // Debug logging
+            if (!isFirstLoad) {
+                console.log('📊 Poll:', {
+                    newId: latestId,
+                    oldId: lastKnownId,
+                    newUpdate: latestUpdatedAt,
+                    oldUpdate: lastKnownUpdatedAt,
+                    hasChange: latestId !== lastKnownId || latestUpdatedAt !== lastKnownUpdatedAt
+                });
+            }
+
+            // Detect new scan or update (only after first load)
             if (!isFirstLoad && latestId !== null) {
-                const isNewRecord = latestId        !== lastKnownId;
+                const isNewRecord = latestId !== lastKnownId;
                 const isUpdated   = latestUpdatedAt !== lastKnownUpdatedAt;
 
                 if (isNewRecord || isUpdated) {
                     const latest = data.checkIns[0];
                     if (latest) {
-                        if (latest.status === 'on_campus') {
-                            showScanPopup('checkin', latest);
-                            flashScanner('scan-success');
-                            playSuccessSound();
-                        } else if (latest.status === 'checked_out') {
+                        console.log('🎉 CHANGE DETECTED!', latest);
+                        
+                        // Check if it's a new check-in or check-out
+                        const hasTimeOut = latest.time_out && latest.time_out !== '--';
+                        
+                        if (hasTimeOut && isUpdated && !isNewRecord) {
+                            // This is a check-out (time_out was just added to existing record)
+                            console.log('🚪 CHECKOUT - Showing popup');
                             showScanPopup('checkout', latest);
                             flashScanner('scan-checkout');
                             playCheckoutSound();
+                        } else if (isNewRecord) {
+                            // This is a new check-in
+                            console.log('✅ CHECK-IN - Showing popup');
+                            showScanPopup('checkin', latest);
+                            flashScanner('scan-success');
+                            playSuccessSound();
                         }
                     }
                 }
@@ -338,19 +340,26 @@ loadAttendance();
 
             lastKnownId        = latestId;
             lastKnownUpdatedAt = latestUpdatedAt;
+            
+            if (isFirstLoad) {
+                console.log('🎬 Monitor initialized. Watching for changes...');
+            }
             isFirstLoad        = false;
 
+            // Update UI
             displayCheckIns(data.checkIns);
             updateStats(data.stats);
             document.getElementById('checkinCount').textContent = data.checkIns.length;
 
         } catch (err) {
-            console.error('Poll error:', err);
+            console.error('❌ Poll error:', err);
         }
     }
 
     // ── Scan popup (SweetAlert2) ───────────────────────────────────────────────
     function showScanPopup(type, student) {
+        console.log('🎭 Showing popup:', type, student);
+        
         if (type === 'checkin') {
             Swal.fire({
                 html: `
@@ -375,7 +384,6 @@ loadAttendance();
                 width: 420,
                 padding: '2rem',
             });
-
         } else if (type === 'checkout') {
             Swal.fire({
                 html: `
@@ -410,7 +418,7 @@ loadAttendance();
         setTimeout(() => area.classList.remove(cls), 3000);
     }
 
-    // ── Display check-in list ──────────────────────────────────────────────────
+    // ── Display check-in list with Time In and Time Out ───────────────────────
     function displayCheckIns(checkIns) {
         const list = document.getElementById('activityList');
 
@@ -421,37 +429,39 @@ loadAttendance();
         }
 
         const prevCount = list.querySelectorAll('.activity-item').length;
+        const hasNewData = prevCount !== checkIns.length;
 
-        if (prevCount !== checkIns.length) {
-            list.innerHTML = '';
-            checkIns.forEach((c, i) => {
-                const initials = (c.student_name || 'U')
-                    .split(' ').filter(n => n).map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        // Force update every time to show time_out changes
+        list.innerHTML = '';
+        checkIns.forEach((c, i) => {
+            const initials = (c.student_name || 'U')
+                .split(' ').filter(n => n).map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
-                const item = document.createElement('div');
-                item.className = 'activity-item' + (i === 0 && !isFirstLoad ? ' new-item' : '');
-                item.innerHTML = `
-                    <div class="activity-avatar">${initials}</div>
-                    <div class="activity-info">
-                        <div class="activity-name">${c.student_name}</div>
-                        <div class="activity-details">${c.grade}${c.lrn ? ' • LRN: ' + c.lrn : ''}</div>
+            const hasTimeOut = c.time_out && c.time_out !== '--';
+            const borderColor = hasTimeOut ? '#f59e0b' : '#10b981';
+
+            const item = document.createElement('div');
+            item.className = 'activity-item' + (i === 0 && hasNewData ? ' new-item' : '');
+            item.style.borderLeftColor = borderColor;
+            
+            item.innerHTML = `
+                <div class="activity-avatar">${initials}</div>
+                <div class="activity-info">
+                    <div class="activity-name">${c.student_name}</div>
+                    <div class="activity-details">${c.grade}${c.lrn ? ' • LRN: ' + c.lrn : ''}</div>
+                    <div class="activity-times">
+                        <div class="time-in">
+                            <i class="bi bi-box-arrow-in-right"></i> IN: ${c.time_in || '--'}
+                        </div>
+                        <div class="time-out" style="color: ${hasTimeOut ? '#f59e0b' : '#9ca3af'};">
+                            <i class="bi bi-box-arrow-right"></i> OUT: ${c.time_out || '--'}
+                        </div>
+                        
                     </div>
-                    <div class="activity-time">
-
-    <div style="color:#10b981;font-weight:600;">
-        <i class="bi bi-box-arrow-in-right"></i>
-        IN: ${c.time_in || '--'}
-    </div>
-
-    <div style="color:#ef4444;font-weight:600;">
-        <i class="bi bi-box-arrow-right"></i>
-        OUT: ${c.time_out || '--'}
-    </div>
-
-</div>`;
-                list.appendChild(item);
-            });
-        }
+                </div>
+            `;
+            list.appendChild(item);
+        });
 
         document.getElementById('lastCheckIn').textContent = checkIns[0]?.time_in || '--';
     }
@@ -462,6 +472,7 @@ loadAttendance();
         animateValue('absentCount',    stats.absent);
         animateValue('summaryPresent', stats.present);
         animateValue('summaryAbsent',  stats.absent);
+        
         const pct = stats.total > 0 ? Math.round((stats.present / stats.total) * 100) : 0;
         document.getElementById('attendancePercentage').textContent = pct + '%';
         updateProgressCircle(pct);
@@ -472,22 +483,18 @@ loadAttendance();
         if (!el) return;
         const start = parseInt(el.textContent) || 0;
         if (start === end) return;
-        const steps = 20, inc = (end - start) / steps;
-        let cur = start, step = 0;
-        const t = setInterval(() => {
-            step++; cur += inc;
-            if (step >= steps) { cur = end; clearInterval(t); }
-            el.textContent = Math.round(cur);
-        }, 16);
+        el.textContent = end;
     }
 
     function updateProgressCircle(pct) {
         const circle = document.getElementById('progressCircle');
         const text   = document.getElementById('attendancePercentage');
         if (!circle) return;
+        
         const circ = 2 * Math.PI * 65;
         circle.style.strokeDasharray  = circ;
         circle.style.strokeDashoffset = circ - (pct / 100) * circ;
+        
         const color = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
         circle.style.stroke = color;
         if (text) text.style.color = color;
@@ -496,6 +503,7 @@ loadAttendance();
     // ── Sounds ─────────────────────────────────────────────────────────────────
     function playSuccessSound() {
         if (!soundEnabled) return;
+        console.log('🔊 Playing success sound');
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         [[800,0,0.1],[1000,0.15,0.25],[1200,0.3,0.45]].forEach(([freq,s,e]) => {
             const osc = ctx.createOscillator(), g = ctx.createGain();
@@ -509,6 +517,7 @@ loadAttendance();
 
     function playCheckoutSound() {
         if (!soundEnabled) return;
+        console.log('🔊 Playing checkout sound');
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         [[1000,0,0.15],[800,0.2,0.35]].forEach(([freq,s,e]) => {
             const osc = ctx.createOscillator(), g = ctx.createGain();
@@ -520,36 +529,39 @@ loadAttendance();
         });
     }
 
-    function playErrorSound() {
-        if (!soundEnabled) return;
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator(), g = ctx.createGain();
-        osc.connect(g); g.connect(ctx.destination);
-        osc.frequency.value = 300; osc.type = 'sawtooth';
-        g.gain.setValueAtTime(0.3, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime+0.4);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4);
-    }
-
     // ── Refresh button ─────────────────────────────────────────────────────────
     document.getElementById('refreshList').addEventListener('click', function() {
         const btn = this, orig = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Refreshing...';
+        console.log('🔄 Manual refresh triggered');
         pollAttendance();
-        setTimeout(() => { btn.disabled = false; btn.innerHTML = orig; }, 1000);
+        setTimeout(() => { 
+            btn.disabled = false; 
+            btn.innerHTML = orig; 
+        }, 1000);
     });
 
-    // ── Init ───────────────────────────────────────────────────────────────────
+    // ── Initialize ─────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Live Monitor Started');
+        console.log('⏱️ Auto-refresh: Every 1 second');
+        console.log('🕐 Timezone: Philippine Time (Asia/Manila)');
+        console.log('🎭 Popups: Enabled for check-in/check-out');
+        console.log('👀 Watch the console for real-time debugging');
+        
+        // Initial stats
         updateStats({
             total:   {{ $totalStudents }},
             present: {{ $presentToday }},
             absent:  {{ $absentToday }}
         });
 
-        pollAttendance();                    // immediate first load
-        setInterval(pollAttendance, 1000);   // then every 3 seconds
+        // Start polling immediately
+        pollAttendance();
+        
+        // Then poll every 1 second
+        setInterval(pollAttendance, 1000);
     });
 </script>
 @endsection

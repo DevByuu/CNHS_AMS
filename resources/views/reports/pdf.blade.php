@@ -326,7 +326,6 @@
                 <th style="width: 60px;">Grade</th>
                 <th style="width: 70px;">Time In</th>
                 <th style="width: 70px;">Time Out</th>
-                <th style="width: 65px;">Duration</th>
                 <th style="width: 70px;">Status</th>
             </tr>
         </thead>
@@ -339,7 +338,6 @@
                 <td class="center">{{ $student['grade'] }}</td>
                 <td class="center time-in">{{ $student['time_in'] }}</td>
                 <td class="center time-out">{{ $student['time_out'] }}</td>
-                <td class="center duration">{{ $student['duration'] }}</td>
                 <td class="center {{ $student['status'] == 'On campus' ? 'status-on-campus' : 'status-completed' }}">
                     {{ $student['status'] }}
                 </td>
