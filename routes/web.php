@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
     | IMPORTANT: Custom routes MUST come before Route::resource()
     |--------------------------------------------------------------------------
     */
+    Route::delete('students/batch-delete', [StudentsController::class, 'batchDestroy'])->name('students.batch-delete');
     Route::get('/students/download-template', [StudentsController::class, 'downloadTemplate'])->name('students.download-template');
     Route::post('/students/import-csv', [StudentsController::class, 'importCsv'])->name('students.import-csv');
     Route::resource('students', StudentsController::class);

@@ -52,7 +52,7 @@ class StudentsController extends Controller
         }
 
         // Paginate results
-        $students = $query->orderBy('created_at', 'desc')->paginate(10);
+        $students = $query->orderBy('created_at', 'desc')->paginate(100);
 
         // Get statistics
         $studentsWithRfid = Student::whereNotNull('rfid')->count();
@@ -332,4 +332,23 @@ class StudentsController extends Controller
             ], 500);
         }
     }
+    public function batchDestroy(Request $request)
+{
+    $ids = $request->input('ids', []);
+
+    if (empty($ids)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No students selected.'
+        ], 422);
+    }
+
+    $deleted = Student::whereIn('id', $ids)->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => $deleted . ' student(s) deleted successfully.',
+        'deleted' => $deleted
+    ]);
+}
 }
